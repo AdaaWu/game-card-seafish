@@ -1,7 +1,7 @@
 // 場上生物外觀：橢圓頭像框＋角色圖＋攻擊／生命，同外觀共用貼圖（參照計數）
 import * as THREE from 'three'
 import type { Card } from '@/content/types'
-import { FACTION_STYLE, KEYWORDS, SHAPES, type IconDef } from '@/content/cardStyle'
+import { FACTION_STYLE, KEYWORDS, SHAPES, attackTone, healthTone, type IconDef, type StatTone } from '@/content/cardStyle'
 
 export const MINION_TEX_W = 256
 export const MINION_TEX_H = 320
@@ -15,6 +15,7 @@ export interface MinionLook {
 
 const FONT_NUM = '"M PLUS Rounded 1c", "Baloo 2", "Noto Sans TC", sans-serif'
 const INK = '#3E3550'
+const TONE_COLOR: Record<StatTone, string> = { up: '#7EE29A', down: '#FF8F8B', same: '#FFFFFF' }
 
 function drawIcon(ctx: CanvasRenderingContext2D, icon: IconDef, x: number, y: number, size: number, color: string) {
   ctx.save()
@@ -131,12 +132,11 @@ export function drawMinion(ctx: CanvasRenderingContext2D, card: Card, look: Mini
     ctx.fillText(`+${kws.length - 3}`, cx, 27)
   }
 
-  // 攻擊（左下）與生命（右下），與原始值不同時變色
-  const baseAtk = card.attack ?? 0
-  const baseHp = card.health ?? 0
-  const atkColor = look.attack > baseAtk ? '#7EE29A' : look.attack < baseAtk ? '#FF8F8B' : '#FFFFFF'
-  const hurt = look.health < look.maxHealth
-  const hpColor = hurt ? '#FF8F8B' : look.health > baseHp ? '#7EE29A' : '#FFFFFF'
+  // 攻擊（左下）與生命（右下），變色規則與卡面共用
+  const atkColor = TONE_COLOR[attackTone(look.attack, card.attack ?? 0)]
+  const hpTone = healthTone(look.health, look.maxHealth, card.health ?? 0)
+  const hurt = hpTone === 'down'
+  const hpColor = TONE_COLOR[hpTone]
   badge(ctx, SHAPES.attack, 2, 226, 1.05, '#F6E3A1')
   number(ctx, look.attack, 48, 274, atkColor)
   badge(ctx, SHAPES.health, 160, 226, 1.05, '#F2B8C6')

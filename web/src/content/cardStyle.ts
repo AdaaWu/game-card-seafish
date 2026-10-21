@@ -9,16 +9,94 @@ export const CARD_H = 700
 export const LAYOUT = {
   radius: 36,
   border: 12,
-  art: { x: 40, y: 60, w: 420, h: 330, r: 24, overflowTop: 40 },
-  ribbon: { x: 30, y: 380, w: 440, h: 64 },
-  text: { x: 50, y: 456, w: 400, h: 190, r: 16, spellBottom: 680 },
-  cost: { x: 8, y: 8, d: 96 },
-  attack: { x: 8, y: 604, d: 88 },
-  health: { x: 404, y: 604, d: 88 },
-  gem: { cx: 250, cy: 444, d: 28 },
-  font: { cost: 64, stat: 56, statWide: 48, name: 32, nameMin: 24, text: 24, textMin: 18, type: 18, lineHeight: 1.35 },
+  inset: 6,
+  // 插畫高度依文字框伸縮；角色高度 86%、寬度上限 108%、頂端往下 10%
+  art: { x: 18, y: 18, w: 464, h: 504, r: 26, minH: 434, maxH: 548, shadowUp: 28, fitH: 0.86, fitW: 1.08, top: 0.1 },
+  ribbon: { creature: { x: 96, w: 308 }, spell: { x: 50, w: 400 }, h: 52, gap: 4 },
+  // 效果文字 4 行用 154、3 行 132、2 行以下 110
+  text: { x: 18, w: 464, bottom: 682, r: 16, h4: 154, h3: 132, h2: 110, padX: 16, typeSpace: 26 },
+  cost: { x: 10, y: 10, d: 70 },
+  faction: { x: 420, y: 10, d: 70 },
+  attack: { x: 14, d: 70, up: 2 },
+  health: { x: 416, d: 70, up: 2 },
+  gem: { cx: 250, d: 24 },
+  keyword: { cx: 130, cy: 45, d: 48, gap: 56 },
+  font: { cost: 46, stat: 40, statWide: 34, name: 32, nameMin: 24, text: 24, textMin: 18, type: 18, lineHeight: 1.35 },
   nameMaxChars: 8,
-  textMaxLines: 5,
+  textMaxLines: 4,
+} as const
+
+// 切片 1x 以 512 寬貼圖為準：設計稿 1 單位 = 1.024 px
+export const SLICE_PX = 1.024
+
+// 九宮格不拉伸區（1x px）
+export const SLICE_INSET = {
+  scrim: { t: 0, r: 28, b: 0, l: 28 },
+  ribbon: { t: 0, r: 32, b: 0, l: 32 },
+  textbox: { t: 20, r: 20, b: 20, l: 20 },
+} as const
+
+export interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export function textBoxHeight(lines: number): number {
+  const t = LAYOUT.text
+  return lines >= 4 ? t.h4 : lines === 3 ? t.h3 : t.h2
+}
+
+// 依效果文字行數算出整張卡面版面
+export function cardFaceLayout(type: Card['type'], textLines: number) {
+  const L = LAYOUT
+  const textH = textBoxHeight(textLines)
+  const textY = L.text.bottom - textH
+  const artH = Math.min(L.art.maxH, Math.max(L.art.minH, textY - L.inset - L.art.y))
+  const artBottom = L.art.y + artH
+  const rb = type === 'creature' ? L.ribbon.creature : L.ribbon.spell
+  const ribbon = { x: rb.x, y: artBottom - L.ribbon.gap - L.ribbon.h, w: rb.w, h: L.ribbon.h }
+  const corner = (c: { x: number; d: number; up: number }) => ({ x: c.x, y: artBottom - c.up - c.d, d: c.d })
+  return {
+    art: { x: L.art.x, y: L.art.y, w: L.art.w, h: artH, r: L.art.r },
+    text: { x: L.text.x, y: textY, w: L.text.w, h: textH, r: L.text.r },
+    ribbon,
+    gem: { cx: L.gem.cx, cy: ribbon.y + ribbon.h, d: L.gem.d },
+    cost: L.cost,
+    faction: L.faction,
+    attack: corner(L.attack),
+    health: corner(L.health),
+  }
+}
+
+// 角色插畫放置：bounds 為角色不透明範圍（圖片 px），回傳插畫在設計稿的繪製範圍
+export function artPlacement(bounds: Rect, imageW: number, imageH: number, art: Rect): Rect {
+  const A = LAYOUT.art
+  const s = Math.min((art.h * A.fitH) / bounds.h, (art.w * A.fitW) / bounds.w)
+  return {
+    x: art.x + art.w / 2 - (bounds.x + bounds.w / 2) * s,
+    y: art.y + art.h * A.top - bounds.y * s,
+    w: imageW * s,
+    h: imageH * s,
+  }
+}
+
+// 卡面切片與四角圖示 URL，path 如 card-frame/card-frame-leaf、icons/icon-cost
+export function uiImageUrl(path: string, hi = false): string | undefined {
+  return assetUrls[`ui/${path}${hi ? '@2x' : ''}.webp`]
+}
+
+// 手牌精簡版型：放大角色圖、卡名與數值，不放效果文字
+export const HAND_LAYOUT = {
+  art: { x: 30, y: 30, w: 440, h: 420, r: 28 },
+  ribbon: { x: 20, y: 456, w: 460, h: 96 },
+  cost: { x: 0, y: 0, d: 128 },
+  attack: { x: 0, y: 564, d: 132 },
+  health: { x: 368, y: 564, d: 132 },
+  mark: { x: 200, y: 584, w: 100, h: 80 },
+  font: { cost: 84, costWide: 72, stat: 84, statWide: 72, name: 68 },
+  kw: { d: 76, gap: 8, top: 14, right: 14 },
 } as const
 
 export interface IconDef {
@@ -200,28 +278,6 @@ export const SHAPES = {
     'M150 70L170 26L200 56L250 10L300 56L330 26L350 70Q250 50 150 70Z',
 } as const
 
-// 卡框邊緣花紋：潮為波浪、霜為冰晶，其餘陣營無
-export function framePatternPath(faction: Faction): string {
-  const inset = 20
-  if (faction === 'tide') {
-    let d = ''
-    for (let x = 60; x < CARD_W - 60; x += 40) {
-      d += `M${x} ${inset}q10 -8 20 0t20 0`
-      d += `M${x} ${CARD_H - inset}q10 8 20 0t20 0`
-    }
-    return d
-  }
-  if (faction === 'frost') {
-    let d = ''
-    for (let x = 70; x < CARD_W - 60; x += 44) {
-      d += `M${x} ${inset + 6}l8 -12l8 12M${x + 8} ${inset - 6}v18`
-      d += `M${x} ${CARD_H - inset - 6}l8 12l8 -12M${x + 8} ${CARD_H - inset + 6}v-18`
-    }
-    return d
-  }
-  return ''
-}
-
 // 名稱字級：超過 8 字每字縮 2px，最小 24px
 export function nameFontSize(name: string): number {
   const over = Math.max(0, [...name].length - LAYOUT.nameMaxChars)
@@ -229,7 +285,7 @@ export function nameFontSize(name: string): number {
 }
 
 // 效果文字字級：估算行數超過上限時每次縮 1px，最小 18px
-export function textFontSize(text: string, boxWidth: number = LAYOUT.text.w - 32): number {
+export function textFontSize(text: string, boxWidth: number = LAYOUT.text.w - LAYOUT.text.padX * 2): number {
   let size: number = LAYOUT.font.text
   while (size > LAYOUT.font.textMin) {
     const perLine = Math.floor(boxWidth / size)
@@ -237,4 +293,32 @@ export function textFontSize(text: string, boxWidth: number = LAYOUT.text.w - 32
     size -= 1
   }
   return size
+}
+
+// 效果文字估算行數（DOM 卡面用，Canvas 以實際量測為準）
+export function estimateTextLines(text: string, boxWidth: number = LAYOUT.text.w - LAYOUT.text.padX * 2): number {
+  const len = [...text].length
+  if (len === 0) return 0
+  const perLine = Math.floor(boxWidth / textFontSize(text, boxWidth))
+  return Math.min(LAYOUT.textMaxLines, Math.ceil(len / perLine))
+}
+
+export type StatTone = 'up' | 'down' | 'same'
+
+// 攻擊變色：高於原始值為綠、低於原始值為紅
+export function attackTone(attack: number, baseAttack: number): StatTone {
+  if (attack === baseAttack) return 'same'
+  return attack > baseAttack ? 'up' : 'down'
+}
+
+// 生命變色：低於目前上限為紅；上限高於原始值且滿血為綠
+export function healthTone(health: number, maxHealth: number, baseHealth: number): StatTone {
+  if (health < maxHealth) return 'down'
+  return maxHealth > baseHealth ? 'up' : 'same'
+}
+
+// 效果文字扣掉關鍵字後仍有內容
+export function hasEffectText(card: Pick<Card, 'text'>): boolean {
+  const rest = Object.values(KEYWORDS).reduce((t, k) => t.split(k.label).join(''), card.text)
+  return rest.replace(/[\s。、，．,.]/g, '') !== ''
 }
