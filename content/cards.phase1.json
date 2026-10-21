@@ -1,0 +1,1720 @@
+{
+  "cards": [
+    {
+      "id": "leaf-001",
+      "name": "葉羊小芽",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onTurnEnd",
+          "action": "buff",
+          "target": "self",
+          "atk": 0,
+          "hp": 1
+        }
+      ],
+      "text": "回合結束時：本身 +0/+1",
+      "flavor": "每天曬一點太陽，就長大一點點",
+      "species": "葉羊海蛞蝓（幼體）",
+      "artHint": "tiny leaf sheep sea slug, basking in sunbeam, sleepy smile, sprouting leaf cerata",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-002",
+      "name": "海兔小護士",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 1,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "heal",
+          "target": "friendlyHero",
+          "amount": 2
+        }
+      ],
+      "text": "上場：為你的英雄回復 2 點生命",
+      "flavor": "「打針不痛喔～」",
+      "species": "綠色海兔",
+      "artHint": "green sea hare, nurse cap, holding bandage, gentle eyes",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-003",
+      "name": "翡翠海蛞蝓",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "text": "共生",
+      "flavor": "吃下藻類，借來葉綠體，自己也會發電",
+      "species": "翡翠海蛞蝓（Elysia chlorotica）",
+      "artHint": "emerald sea slug, glowing chloroplast dots, absorbing light, content expression",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-004",
+      "name": "綠珊瑚寄居蟹",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 3,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "text": "守護",
+      "flavor": "背上的珊瑚會自己長，房子越住越大",
+      "species": "寄居蟹（珊瑚殼）",
+      "artHint": "hermit crab carrying green coral shell, guarding pose, brave little frown",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-005",
+      "name": "光合作用",
+      "faction": "leaf",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "heal",
+          "target": "friendlyHero",
+          "amount": 4
+        },
+        {
+          "trigger": "onPlay",
+          "action": "draw",
+          "target": "self",
+          "amount": 1
+        }
+      ],
+      "text": "為你的英雄回復 4 點生命，抽 1 張牌",
+      "flavor": "陽光、海水、一點點耐心",
+      "species": "（法術）光合作用",
+      "artHint": "sunrays through water surface, green sparkles, warm light, leaves floating",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-006",
+      "name": "海草叢生",
+      "faction": "leaf",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "summon",
+          "target": "self",
+          "cardId": "token-seagrass",
+          "count": 2
+        },
+        {
+          "trigger": "onPlay",
+          "action": "armor",
+          "target": "friendlyHero",
+          "amount": 2
+        }
+      ],
+      "text": "召喚 2 個「海草芽」，你的英雄獲得 2 點護甲",
+      "flavor": "一夜之間，海床長滿了軟綿綿的小草",
+      "species": "（法術）海草床",
+      "artHint": "seagrass meadow sprouting, soft swaying blades, cozy seabed",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-007",
+      "name": "綠蠵龜奶奶",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "armor",
+          "target": "friendlyHero",
+          "amount": 3
+        }
+      ],
+      "text": "上場：你的英雄獲得 3 點護甲",
+      "flavor": "殼上刻著一百年的故事",
+      "species": "綠蠵龜",
+      "artHint": "old green sea turtle, knitting seaweed scarf, reading glasses, warm smile",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-008",
+      "name": "海兔園丁",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onTurnEnd",
+          "action": "buff",
+          "target": "randomFriendlyMinion",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "text": "回合結束時：使一個隨機友方生物 +1/+1",
+      "flavor": "澆水、修剪、再說一聲「長大吧」",
+      "species": "海兔",
+      "artHint": "sea hare gardener, tiny watering can, straw hat, cheerful",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-009",
+      "name": "新芽祝福",
+      "faction": "leaf",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "chosenFriendlyMinion",
+          "atk": 1,
+          "hp": 2
+        }
+      ],
+      "text": "使一個友方生物 +1/+2",
+      "flavor": "頭上冒出一片新葉子，暖暖的",
+      "species": "（法術）新芽",
+      "artHint": "glowing sprout landing on head, soft green aura, sparkles",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-010",
+      "name": "巨藻森林海獺",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "rarity": "epic",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "onTurnEnd",
+          "action": "heal",
+          "target": "friendlyHero",
+          "amount": 2
+        }
+      ],
+      "text": "守護。回合結束時：為你的英雄回復 2 點生命",
+      "flavor": "睡覺時會用海藻把自己綁好，才不會漂走",
+      "species": "海獺",
+      "artHint": "sea otter wrapped in kelp, floating on back, hugging shell, peaceful",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-011",
+      "name": "潮間帶綠洲",
+      "faction": "leaf",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "epic",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "allFriendlyMinions",
+          "atk": 1,
+          "hp": 2
+        },
+        {
+          "trigger": "onPlay",
+          "action": "heal",
+          "target": "friendlyHero",
+          "amount": 5
+        }
+      ],
+      "text": "使所有友方生物 +1/+2，為你的英雄回復 5 點生命",
+      "flavor": "退潮後的小水窪，是大家的祕密花園",
+      "species": "（法術）潮間帶",
+      "artHint": "tide pool oasis, lush algae, sunlight, tiny creatures celebrating",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "leaf-012",
+      "name": "光合事務所‧小葉",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 7,
+      "attack": 5,
+      "health": 8,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "heal",
+          "target": "friendlyHero",
+          "amount": 6
+        },
+        {
+          "trigger": "onTurnEnd",
+          "action": "buff",
+          "target": "allFriendlyMinions",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "text": "上場：為你的英雄回復 6 點生命。回合結束時：使所有友方生物 +1/+1",
+      "flavor": "「說好準時下班的……好啦，這次我來。」",
+      "species": "綠葉海天牛（葉羊）",
+      "artHint": "chibi leaf sheep sea slug xiaoye, creamy white body, purple bunny-ear rhinophores, green leaves with pink tips glowing, laptop under arm, determined rhinophores, sunlight burst",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-001",
+      "name": "小丑魚斥候",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onDeath",
+          "action": "draw",
+          "target": "self",
+          "amount": 1
+        }
+      ],
+      "text": "死亡時：抽 1 張牌",
+      "flavor": "探路完要記得回報喔",
+      "species": "小丑魚",
+      "artHint": "clownfish scout, tiny backpack, telescope, curious",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-002",
+      "name": "海馬信差",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 2,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "draw",
+          "target": "self",
+          "amount": 1
+        }
+      ],
+      "text": "上場：抽 1 張牌",
+      "flavor": "尾巴捲著信，慢慢游但一定送到",
+      "species": "海馬",
+      "artHint": "seahorse mail carrier, letter curled in tail, mail bag, proud",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-003",
+      "name": "浪花捲回",
+      "faction": "tide",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "bounce",
+          "target": "chosenEnemyMinion"
+        }
+      ],
+      "text": "將一個敵方生物彈回擁有者手牌",
+      "flavor": "「咦？我怎麼又回到起點了？」",
+      "species": "（法術）浪花",
+      "artHint": "curling wave scooping a creature, splash, playful",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-004",
+      "name": "海流指引",
+      "faction": "tide",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "draw",
+          "target": "self",
+          "amount": 2
+        }
+      ],
+      "text": "抽 2 張牌",
+      "flavor": "順著洋流，答案會自己漂過來",
+      "species": "（法術）洋流",
+      "artHint": "swirling blue current carrying cards, bubbles, map-like trails",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-005",
+      "name": "藍點魟",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "text": "突進",
+      "flavor": "翻身一甩，像一張會飛的藍色地毯",
+      "species": "藍點魟",
+      "artHint": "blue-spotted stingray, swooping dash, determined eyes, motion lines",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-006",
+      "name": "海獺搬運工",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "bounce",
+          "target": "chosenFriendlyMinion"
+        }
+      ],
+      "text": "上場：將一個友方生物彈回你的手牌",
+      "flavor": "「這個先收回去，等一下再用！」",
+      "species": "海獺",
+      "artHint": "sea otter mover, carrying friend in arms, hard hat, helpful grin",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-007",
+      "name": "帆水母",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 2,
+      "attack": 2,
+      "health": 1,
+      "rarity": "rare",
+      "keywords": [
+        "bubble"
+      ],
+      "effects": [
+        {
+          "trigger": "onDeath",
+          "action": "draw",
+          "target": "self",
+          "amount": 1
+        }
+      ],
+      "text": "泡泡盾。死亡時：抽 1 張牌",
+      "flavor": "背著小帆，風往哪吹就往哪漂",
+      "species": "帆水母（Velella）",
+      "artHint": "by-the-wind sailor jellyfish, tiny blue sail, inside bubble, drifting, dreamy",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-008",
+      "name": "藍龍海蛞蝓",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "bounce",
+          "target": "chosenMinion"
+        }
+      ],
+      "text": "上場：將一個生物彈回擁有者手牌",
+      "flavor": "漂在海面上的小藍龍，翅膀其實是腳",
+      "species": "大西洋海神海蛞蝓（Glaucus atlanticus）",
+      "artHint": "blue dragon sea slug floating upside down, star-shaped cerata, swirling water, mischievous",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-009",
+      "name": "潮汐漩渦",
+      "faction": "tide",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "allEnemyMinions",
+          "amount": 1
+        },
+        {
+          "trigger": "onPlay",
+          "action": "draw",
+          "target": "self",
+          "amount": 1
+        }
+      ],
+      "text": "對所有敵方生物造成 1 點傷害，抽 1 張牌",
+      "flavor": "轉呀轉，轉得大家頭好暈",
+      "species": "（法術）漩渦",
+      "artHint": "whirlpool spinning dizzy creatures, spiral bubbles",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-010",
+      "name": "快遞員‧殼殼",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 5,
+      "attack": 4,
+      "health": 4,
+      "rarity": "epic",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "draw",
+          "target": "self",
+          "amount": 2
+        }
+      ],
+      "text": "上場：抽 2 張牌",
+      "flavor": "「這包是你的……吧？順著洋流送的，應該沒錯！」",
+      "species": "寄居蟹",
+      "artHint": "chibi hermit crab keke, coral-pink shell with tide-wave sticker, oversized courier bag, tiny delivery cap, handing over parcels, cheerful",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-011",
+      "name": "巡潮員‧阿漂",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "epic",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "bounce",
+          "target": "chosenEnemyMinion"
+        }
+      ],
+      "text": "守護。上場：將一個敵方生物彈回擁有者手牌",
+      "flavor": "「逆流游泳是違規的，請回去重新排隊。」",
+      "species": "海馬",
+      "artHint": "chibi seahorse apiao, pale aqua with light-blue stripes, tail holding whistle, patrol sash, stiff upright salute",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "tide-012",
+      "name": "郵局局長‧波波",
+      "faction": "tide",
+      "type": "creature",
+      "cost": 8,
+      "attack": 5,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "bounce",
+          "target": "allEnemyMinions"
+        }
+      ],
+      "text": "上場：將所有敵方生物彈回擁有者手牌",
+      "flavor": "「洋流我來改道，大家先回家，剩下的我扛。」",
+      "species": "海兔",
+      "artHint": "chibi sea hare bobo, lilac-to-blue gradient, curly rhinophores, postman cap, seaweed mailbag, redirecting huge current with both arms",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-001",
+      "name": "冰晶小海星",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "chosenEnemyMinion"
+        }
+      ],
+      "text": "上場：冰凍一個敵方生物",
+      "flavor": "摸起來冰冰涼涼的，五個角都在發光",
+      "species": "海星（冰晶）",
+      "artHint": "icy blue starfish, frost crystals on arms, shy wink",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-002",
+      "name": "雪球海參",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 2,
+      "attack": 1,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "text": "守護",
+      "flavor": "縮成一團，就是最好的牆",
+      "species": "海參",
+      "artHint": "round white sea cucumber, snowball shape, holding ground, stubborn cute",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-003",
+      "name": "寒流",
+      "faction": "frost",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "chosenEnemy",
+          "amount": 1
+        },
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "chosenEnemy"
+        }
+      ],
+      "text": "對一個敵人造成 1 點傷害並冰凍",
+      "flavor": "一陣涼風，打了個大噴嚏",
+      "species": "（法術）寒流",
+      "artHint": "cold current swirl, snowflakes, frost breath",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-004",
+      "name": "冰封海面",
+      "faction": "frost",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "allEnemyMinions"
+        }
+      ],
+      "text": "冰凍所有敵方生物",
+      "flavor": "整片海面結成了溜冰場",
+      "species": "（法術）海冰",
+      "artHint": "frozen sea surface, ice sheet spreading, creatures stuck mid-swim",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-005",
+      "name": "冰魚寶寶",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "chosenEnemyMinion"
+        }
+      ],
+      "text": "上場：冰凍一個敵方生物",
+      "flavor": "血是透明的，膽子也是透明的",
+      "species": "南極冰魚",
+      "artHint": "translucent antarctic icefish, frosty fins, puffing cold breath, innocent",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-006",
+      "name": "海象衛兵",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "text": "守護",
+      "flavor": "鬍子結了霜也不肯離開崗位",
+      "species": "海象",
+      "artHint": "chubby walrus guard, frosty mustache, ice spear, serious but cute",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-007",
+      "name": "暴風雪",
+      "faction": "frost",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "allEnemyMinions",
+          "amount": 2
+        },
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "allEnemyMinions"
+        }
+      ],
+      "text": "對所有敵方生物造成 2 點傷害並冰凍",
+      "flavor": "雪花在水裡也能下嗎？可以喔",
+      "species": "（法術）暴風雪",
+      "artHint": "underwater blizzard, swirling snow, icy wind",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-008",
+      "name": "雪花海蛞蝓",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onTurnEnd",
+          "action": "freeze",
+          "target": "randomEnemyMinion"
+        }
+      ],
+      "text": "回合結束時：冰凍一個隨機敵方生物",
+      "flavor": "每吐一口氣，就飄出一片雪花",
+      "species": "白色海蛞蝓（雪花紋）",
+      "artHint": "white sea slug with snowflake pattern, blowing frost, sleepy-eyed",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-009",
+      "name": "冰山寄居蟹",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "armor",
+          "target": "friendlyHero",
+          "amount": 4
+        }
+      ],
+      "text": "上場：你的英雄獲得 4 點護甲",
+      "flavor": "殼是一座小冰山，只露出一點點",
+      "species": "寄居蟹（冰山殼）",
+      "artHint": "hermit crab with mini iceberg shell, peeking out, chilly",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-010",
+      "name": "冰窖管理員‧冰糖",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 6,
+      "attack": 4,
+      "health": 6,
+      "rarity": "epic",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "allEnemyMinions"
+        }
+      ],
+      "text": "上場：冰凍所有敵方生物",
+      "flavor": "「冷泉不能停……再加班一下下就好……zzz」",
+      "species": "白雪海牛",
+      "artHint": "chibi white nudibranch bingtang, sugar-crystal pale-blue frills, drooping sleepy rhinophores, pastel blue blanket, holding candy, ice cellar door",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-011",
+      "name": "深谷守門‧凜凜",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "epic",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "chosenEnemyMinion"
+        }
+      ],
+      "text": "守護。上場：冰凍一個敵方生物",
+      "flavor": "「師父說不能讓人過去，我一個人也擋得住！」",
+      "species": "冰海天使（Clione）",
+      "artHint": "chibi sea angel linlin, translucent icy-white body, orange heart glow, snowflake hairclip, wing fins spread blocking path, competitive pout",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "frost-012",
+      "name": "冷泉長老‧凍凍婆婆",
+      "faction": "frost",
+      "type": "creature",
+      "cost": 8,
+      "attack": 6,
+      "health": 8,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "allEnemyMinions",
+          "amount": 1
+        },
+        {
+          "trigger": "onPlay",
+          "action": "freeze",
+          "target": "allEnemyMinions"
+        }
+      ],
+      "text": "守護。上場：對所有敵方生物造成 1 點傷害並冰凍",
+      "flavor": "「哼，礁石燒成這樣，不冰一冰怎麼行。」",
+      "species": "雪花海星",
+      "artHint": "chibi five-armed sea star dongdong, frosty white with ice crystal patterns, knitted pastel scarf, ice cane raised, cold spring swirling",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-001",
+      "name": "螢光磷蝦",
+      "faction": "light",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "enemyHero",
+          "amount": 1
+        }
+      ],
+      "text": "上場：對敵方英雄造成 1 點傷害",
+      "flavor": "一閃一閃，閃到對方眼睛好花",
+      "species": "磷蝦",
+      "artHint": "tiny glowing krill, blue sparkle dots, flashing light, playful grin",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-002",
+      "name": "燈籠水母",
+      "faction": "light",
+      "type": "creature",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "chosenFriendlyMinion",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "text": "上場：使一個友方生物 +1/+1",
+      "flavor": "頭頂的小燈籠，照亮夥伴的路",
+      "species": "櫛水母",
+      "artHint": "comb jelly with rainbow lines, lantern glow, cheering friend",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-003",
+      "name": "閃光彈",
+      "faction": "light",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "chosenEnemy",
+          "amount": 2
+        }
+      ],
+      "text": "對一個敵人造成 2 點傷害",
+      "flavor": "啪！好亮！",
+      "species": "（法術）閃光",
+      "artHint": "bright flash burst, star sparkles, cartoon pop",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-004",
+      "name": "朝陽小丑魚",
+      "faction": "light",
+      "type": "creature",
+      "cost": 2,
+      "attack": 3,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "text": "突進",
+      "flavor": "一早起來就充滿幹勁",
+      "species": "小丑魚（橘金）",
+      "artHint": "orange-gold clownfish dashing, sunrise glow, headband, energetic",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-005",
+      "name": "光輝加持",
+      "faction": "light",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "chosenFriendlyMinion",
+          "atk": 2,
+          "hp": 2
+        }
+      ],
+      "text": "使一個友方生物 +2/+2",
+      "flavor": "被陽光抱一下，力氣都回來了",
+      "species": "（法術）光輝",
+      "artHint": "golden halo descending, warm rays, power-up sparkles",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-006",
+      "name": "旗魚衝鋒手",
+      "faction": "light",
+      "type": "creature",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "text": "疾行",
+      "flavor": "海裡最快的郵差，不，是衝鋒手",
+      "species": "旗魚",
+      "artHint": "sailfish charging, sail fin raised, speed lines, fierce cute",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-007",
+      "name": "孔雀螳螂蝦",
+      "faction": "light",
+      "type": "creature",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "rush",
+        "bubble"
+      ],
+      "effects": [],
+      "text": "突進。泡泡盾",
+      "flavor": "小拳頭，大威力",
+      "species": "雀尾螳螂蝦",
+      "artHint": "peacock mantis shrimp, rainbow shell, boxing pose inside bubble, confident",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-008",
+      "name": "珍珠貝光環",
+      "faction": "light",
+      "type": "creature",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "allFriendlyMinions",
+          "atk": 1,
+          "hp": 1
+        }
+      ],
+      "text": "上場：使所有友方生物 +1/+1",
+      "flavor": "打開殼的那一刻，大家都閃閃發亮",
+      "species": "珍珠貝",
+      "artHint": "pearl oyster opening, radiant pearl light, friends glowing around",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-009",
+      "name": "陽光直射",
+      "faction": "light",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "chosenEnemy",
+          "amount": 4
+        }
+      ],
+      "text": "對一個敵人造成 4 點傷害",
+      "flavor": "正中午，海面像一面放大鏡",
+      "species": "（法術）烈陽",
+      "artHint": "concentrated sunbeam piercing water, bright spot, heat shimmer",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-010",
+      "name": "日光潮湧",
+      "faction": "light",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "epic",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "enemyHero",
+          "amount": 3
+        },
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "allFriendlyMinions",
+          "atk": 2,
+          "hp": 1
+        }
+      ],
+      "text": "對敵方英雄造成 3 點傷害，使所有友方生物 +2/+1",
+      "flavor": "光的浪潮湧上來，大家一起衝！",
+      "species": "（法術）光潮",
+      "artHint": "wave of golden light surging forward, creatures charging together",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-011",
+      "name": "舞台總監‧閃閃",
+      "faction": "light",
+      "type": "creature",
+      "cost": 5,
+      "attack": 4,
+      "health": 4,
+      "rarity": "epic",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "summon",
+          "target": "self",
+          "cardId": "token-glowjelly",
+          "count": 2
+        }
+      ],
+      "text": "上場：召喚 2 個「光點水母」",
+      "flavor": "「燈光就位、舞者就位，照排班表，開演！」",
+      "species": "螢火魷",
+      "artHint": "chibi firefly squid shanshan, deep indigo body, glowing blue dots, headset mic, clipboard schedule, nervous tentacles cueing tiny glowing jellies",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "light-012",
+      "name": "星光歌姬‧啾啾",
+      "faction": "light",
+      "type": "creature",
+      "cost": 7,
+      "attack": 5,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "bubble"
+      ],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "buff",
+          "target": "allFriendlyMinions",
+          "atk": 2,
+          "hp": 1
+        }
+      ],
+      "text": "泡泡盾。上場：使所有友方生物 +2/+1",
+      "flavor": "「大家看我這裡！今晚也要唱到最後一首！」",
+      "species": "海月水母",
+      "artHint": "chibi moon jellyfish jiujiu, pink-purple star dots, clover pattern, ribbon tentacles, tiny microphone, spotlight, singing on stage",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-001",
+      "name": "小寄居蟹",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "text": "守護",
+      "flavor": "殼是撿來的，勇氣是自己的",
+      "species": "寄居蟹",
+      "artHint": "tiny hermit crab in snail shell, arms up blocking, brave",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-002",
+      "name": "海星寶寶",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "text": "",
+      "flavor": "最喜歡黏在玻璃上看大家",
+      "species": "海星",
+      "artHint": "pink starfish baby, waving one arm, happy face",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-003",
+      "name": "氣噗噗河豚",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onDeath",
+          "action": "damage",
+          "target": "allMinions",
+          "amount": 1
+        }
+      ],
+      "text": "死亡時：對所有生物造成 1 點傷害",
+      "flavor": "生氣就會變圓，變圓就會爆炸",
+      "species": "河豚",
+      "artHint": "puffed-up pufferfish, angry cheeks, spikes out, comedic",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-004",
+      "name": "海龜郵差",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "text": "",
+      "flavor": "慢慢來，比較快",
+      "species": "玳瑁",
+      "artHint": "hawksbill turtle mail carrier, satchel, steady smile",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-005",
+      "name": "營運部長‧鮟部長",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 7,
+      "attack": 5,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "draw",
+          "target": "self",
+          "amount": 1
+        },
+        {
+          "trigger": "onTurnEnd",
+          "action": "damage",
+          "target": "allEnemyMinions",
+          "amount": 1
+        }
+      ],
+      "text": "上場：抽 1 張牌。回合結束時：對所有敵方生物造成 1 點傷害",
+      "flavor": "「24 小時不熄燈，KPI 才會亮。」",
+      "species": "燈籠鮟鱇",
+      "artHint": "chibi anglerfish anbuzhang, navy-purple round body, warm-yellow lantern lure blazing, round glasses, necktie, KPI clipboard, serious not scary",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-006",
+      "name": "鸚鵡螺旅人",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 5,
+      "attack": 5,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "text": "",
+      "flavor": "五億年前就出發了，還在路上",
+      "species": "鸚鵡螺",
+      "artHint": "nautilus traveler, spiral shell, tiny suitcase, wise eyes",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-007",
+      "name": "小丑魚與海葵",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "summon",
+          "target": "self",
+          "cardId": "token-fry",
+          "count": 1
+        }
+      ],
+      "text": "上場：召喚 1 個「小魚苗」",
+      "flavor": "回家就有人等，是最幸福的事",
+      "species": "小丑魚＋海葵",
+      "artHint": "clownfish peeking out of sea anemone, baby fish nearby, cozy home",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-008",
+      "name": "清潔蝦醫生",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "heal",
+          "target": "chosenAny",
+          "amount": 3
+        }
+      ],
+      "text": "上場：回復一個角色 3 點生命",
+      "flavor": "張開嘴巴～啊～",
+      "species": "清潔蝦",
+      "artHint": "cleaner shrimp doctor, stethoscope, white antennae, caring",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-009",
+      "name": "電鰻",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "damage",
+          "target": "chosenEnemyMinion",
+          "amount": 2
+        }
+      ],
+      "text": "上場：對一個敵方生物造成 2 點傷害",
+      "flavor": "靜電太多，碰到誰都會麻一下",
+      "species": "電鰻",
+      "artHint": "electric eel, zigzag sparks, frizzy static, cheeky grin",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-010",
+      "name": "珊瑚礁鯙",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "stealth",
+        "lifesteal"
+      ],
+      "effects": [],
+      "text": "潛藏。共生",
+      "flavor": "躲在洞裡的時候，其實在偷看你",
+      "species": "裸胸鯙",
+      "artHint": "moray eel peeking from coral hole, half hidden, sly smile",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-011",
+      "name": "大王具足蟲",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 6,
+      "attack": 4,
+      "health": 7,
+      "rarity": "rare",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "onDamaged",
+          "action": "armor",
+          "target": "friendlyHero",
+          "amount": 2
+        }
+      ],
+      "text": "守護。受到傷害時：你的英雄獲得 2 點護甲",
+      "flavor": "可以五年不吃飯，但不能一天不睡覺",
+      "species": "大王具足蟲",
+      "artHint": "giant isopod curled armor, sleepy, shield-like plates",
+      "collectible": true,
+      "phase": 1
+    },
+    {
+      "id": "neutral-012",
+      "name": "藍鯨爺爺",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 10,
+      "attack": 10,
+      "health": 10,
+      "rarity": "epic",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "text": "守護",
+      "flavor": "他游過的地方，海就安靜下來",
+      "species": "藍鯨",
+      "artHint": "gigantic blue whale grandpa, gentle eyes, tiny creatures riding on back",
+      "collectible": true,
+      "phase": 1
+    }
+  ],
+  "tokens": [
+    {
+      "id": "token-pearl",
+      "name": "珍珠",
+      "faction": "neutral",
+      "type": "spell",
+      "cost": 0,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "onPlay",
+          "action": "gainMana",
+          "target": "self",
+          "amount": 1
+        }
+      ],
+      "text": "本回合獲得 1 點潮能",
+      "flavor": "後手的小禮物，收好喔",
+      "species": "（法術）珍珠",
+      "artHint": "shiny round pearl, soft glow, gift ribbon",
+      "collectible": false,
+      "phase": 1
+    },
+    {
+      "id": "token-seagrass",
+      "name": "海草芽",
+      "faction": "leaf",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "text": "守護",
+      "flavor": "軟軟的，但會努力擋在前面",
+      "species": "海草",
+      "artHint": "small seagrass sprout with face, swaying, determined",
+      "collectible": false,
+      "phase": 1
+    },
+    {
+      "id": "token-fry",
+      "name": "小魚苗",
+      "faction": "neutral",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "text": "",
+      "flavor": "剛學會游泳",
+      "species": "仔魚",
+      "artHint": "tiny baby fish, big eyes, wobbly swimming",
+      "collectible": false,
+      "phase": 1
+    },
+    {
+      "id": "token-glowjelly",
+      "name": "光點水母",
+      "faction": "light",
+      "type": "creature",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "text": "疾行",
+      "flavor": "一顆一顆亮起來，衝第一",
+      "species": "小水母",
+      "artHint": "tiny glowing jellyfish, bright dot, zooming forward",
+      "collectible": false,
+      "phase": 1
+    }
+  ],
+  "decks": {
+    "starter-leaf": [
+      "leaf-001",
+      "leaf-001",
+      "leaf-002",
+      "leaf-002",
+      "leaf-003",
+      "leaf-003",
+      "leaf-004",
+      "leaf-004",
+      "leaf-005",
+      "leaf-005",
+      "leaf-006",
+      "leaf-006",
+      "leaf-007",
+      "leaf-007",
+      "leaf-008",
+      "leaf-008",
+      "leaf-009",
+      "leaf-009",
+      "leaf-010",
+      "leaf-011",
+      "leaf-012",
+      "neutral-001",
+      "neutral-001",
+      "neutral-002",
+      "neutral-002",
+      "neutral-004",
+      "neutral-004",
+      "neutral-008",
+      "neutral-008",
+      "neutral-006"
+    ],
+    "ai-tide": [
+      "tide-001",
+      "tide-001",
+      "tide-002",
+      "tide-002",
+      "tide-003",
+      "tide-003",
+      "tide-004",
+      "tide-004",
+      "tide-005",
+      "tide-005",
+      "tide-006",
+      "tide-006",
+      "tide-007",
+      "tide-007",
+      "tide-008",
+      "tide-008",
+      "tide-009",
+      "tide-009",
+      "tide-010",
+      "tide-010",
+      "tide-011",
+      "tide-012",
+      "neutral-002",
+      "neutral-002",
+      "neutral-004",
+      "neutral-004",
+      "neutral-009",
+      "neutral-009",
+      "neutral-006",
+      "neutral-006"
+    ],
+    "ai-frost": [
+      "frost-001",
+      "frost-001",
+      "frost-002",
+      "frost-002",
+      "frost-003",
+      "frost-003",
+      "frost-004",
+      "frost-004",
+      "frost-005",
+      "frost-005",
+      "frost-006",
+      "frost-006",
+      "frost-007",
+      "frost-007",
+      "frost-008",
+      "frost-008",
+      "neutral-008",
+      "frost-009",
+      "frost-010",
+      "frost-011",
+      "frost-012",
+      "neutral-001",
+      "neutral-001",
+      "neutral-002",
+      "neutral-002",
+      "neutral-004",
+      "neutral-004",
+      "neutral-008",
+      "neutral-006",
+      "neutral-012"
+    ],
+    "ai-light": [
+      "light-001",
+      "light-001",
+      "light-002",
+      "light-002",
+      "light-003",
+      "light-003",
+      "light-004",
+      "light-004",
+      "light-005",
+      "light-005",
+      "light-006",
+      "light-006",
+      "light-007",
+      "light-007",
+      "light-008",
+      "light-008",
+      "light-009",
+      "light-009",
+      "light-010",
+      "light-010",
+      "light-011",
+      "light-011",
+      "light-012",
+      "neutral-003",
+      "neutral-003",
+      "neutral-007",
+      "neutral-007",
+      "neutral-009",
+      "neutral-009",
+      "neutral-010"
+    ],
+    "ai-boss": [
+      "neutral-005",
+      "neutral-006",
+      "neutral-006",
+      "light-012",
+      "leaf-012",
+      "frost-003",
+      "frost-003",
+      "light-003",
+      "light-003",
+      "light-009",
+      "light-009",
+      "frost-007",
+      "frost-007",
+      "tide-002",
+      "tide-002",
+      "tide-004",
+      "tide-010",
+      "tide-010",
+      "neutral-002",
+      "neutral-002",
+      "frost-011",
+      "frost-011",
+      "frost-010",
+      "leaf-010",
+      "leaf-010",
+      "neutral-009",
+      "neutral-009",
+      "leaf-005",
+      "light-011",
+      "neutral-010"
+    ]
+  }
+}

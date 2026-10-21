@@ -1,0 +1,397 @@
+{
+  "chapters": [
+    {
+      "id": "ch1",
+      "title": "第 1 章　迷路的洋流",
+      "summary": "小葉的午餐飯糰沒送到，追查後發現暖光礁的洋流被潮陣營改道。和潮流郵局交手後，小葉得知深谷的冷流不對勁。",
+      "battles": [
+        {
+          "id": "ch1-b1",
+          "title": "送錯的飯糰",
+          "enemy": {
+            "name": "殼殼",
+            "species": "寄居蟹",
+            "faction": "tide",
+            "portraitHint": "chibi hermit crab, pastel coral-pink shell with a small tide-wave sticker, oversized courier bag, tiny delivery cap, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 1,
+          "enemyHeroHp": 20,
+          "pre": [
+            { "speaker": "小葉", "text": "午休到了……我的飯糰呢？" },
+            { "speaker": "殼殼", "text": "飯糰？喔，那個我送到珊瑚三巷了！" },
+            { "speaker": "小葉", "text": "我在珊瑚一巷啊。" },
+            { "speaker": "殼殼", "text": "洋流就是往三巷流，我只是照流向送！" },
+            { "speaker": "小葉", "text": "那我只好跟你比一場，把飯糰贏回來。" },
+            { "speaker": "殼殼", "text": "好啊！快遞員也是很能打的！" }
+          ],
+          "post": [
+            { "speaker": "殼殼", "text": "唉唷，輸了輸了。飯糰還你。" },
+            { "speaker": "小葉", "text": "謝謝。不過，洋流以前不是這樣流的吧？" },
+            { "speaker": "殼殼", "text": "對耶，最近好幾條水道都被封了。" },
+            { "speaker": "殼殼", "text": "聽說是巡潮隊下的命令。" },
+            { "speaker": "小葉", "text": "難怪最近養分報表一直對不起來……" },
+            { "speaker": "小葉", "text": "看來今天沒辦法準時下班了。" }
+          ],
+          "defeat": [
+            { "speaker": "殼殼", "text": "嘿嘿，包裹送出，概不退換！" },
+            { "speaker": "小葉", "text": "我的飯糰……下次一定拿回來。" }
+          ]
+        },
+        {
+          "id": "ch1-b2",
+          "title": "封鎖的水道",
+          "enemy": {
+            "name": "阿漂",
+            "species": "海馬",
+            "faction": "tide",
+            "portraitHint": "chibi seahorse, pale aqua body with light-blue stripes, curled tail holding a whistle, patrol sash, upright stiff posture, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 1,
+          "enemyHeroHp": 21,
+          "pre": [
+            { "speaker": "阿漂", "text": "停！前方水道封鎖中。" },
+            { "speaker": "小葉", "text": "我只是想看看洋流怎麼了。" },
+            { "speaker": "阿漂", "text": "規定就是規定，沒有局長簽名不能過。" },
+            { "speaker": "小葉", "text": "可是珊瑚都快白掉了。" },
+            { "speaker": "阿漂", "text": "那……就照巡潮隊的規矩，比一場再說。" }
+          ],
+          "post": [
+            { "speaker": "阿漂", "text": "你比我想的還要堅持。" },
+            { "speaker": "小葉", "text": "因為我的葉子也開始變藍了。" },
+            { "speaker": "阿漂", "text": "其實，封水道是波波局長親自下的令。" },
+            { "speaker": "阿漂", "text": "她最近都待在郵局，好幾天沒回家。" },
+            { "speaker": "小葉", "text": "那我去郵局找她談談。" },
+            { "speaker": "阿漂", "text": "去吧。我就當作沒看到。" }
+          ],
+          "defeat": [
+            { "speaker": "阿漂", "text": "規定就是規定，請回吧。" },
+            { "speaker": "小葉", "text": "好吧，我回去重新整理牌組。" }
+          ]
+        },
+        {
+          "id": "ch1-b3",
+          "title": "潮流郵局的局長",
+          "enemy": {
+            "name": "波波",
+            "species": "海兔",
+            "faction": "tide",
+            "portraitHint": "chibi sea hare, round soft body, pastel lilac-to-blue gradient, two pairs of curly rhinophores, postman cap, seaweed mailbag, stacks of letters, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 2,
+          "enemyHeroHp": 23,
+          "pre": [
+            { "speaker": "波波", "text": "又是誰要投訴？排隊排隊！" },
+            { "speaker": "小葉", "text": "我是光合事務所的小葉。洋流被改道了。" },
+            { "speaker": "波波", "text": "我知道，是我改的。" },
+            { "speaker": "小葉", "text": "可是養分送不進來，珊瑚撐不住。" },
+            { "speaker": "波波", "text": "你不懂！不改道會更糟！" },
+            { "speaker": "波波", "text": "要我改回去，先讓我看看你的決心。" }
+          ],
+          "post": [
+            { "speaker": "波波", "text": "呼……好久沒有人這樣跟我認真吵架了。" },
+            { "speaker": "小葉", "text": "你為什麼要改道？" },
+            { "speaker": "波波", "text": "深谷那邊的冷流變得好強，我怕礁石被凍傷。" },
+            { "speaker": "波波", "text": "我一個人想不到別的辦法，只好先擋住。" },
+            { "speaker": "小葉", "text": "那我去深谷看看，你先把一半水道打開。" },
+            { "speaker": "波波", "text": "好。小葉，謝謝你。我寫張通行證給你！" },
+            { "speaker": "小葉", "text": "加班出差……好吧，就當作是校外教學。" }
+          ],
+          "defeat": [
+            { "speaker": "波波", "text": "看吧，你還沒準備好。" },
+            { "speaker": "波波", "text": "水道先維持封鎖，等你變強再來。" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch2",
+      "title": "第 2 章　冰封的深谷",
+      "summary": "小葉潛入礁外深谷，發現霜陣營正拚命加大冷流替珊瑚降溫，卻把洋流通道都凍住了。和解後，凍凍婆婆指出熱源來自礁頂的光。",
+      "battles": [
+        {
+          "id": "ch2-b1",
+          "title": "深谷的守門人",
+          "enemy": {
+            "name": "凜凜",
+            "species": "冰海天使",
+            "faction": "frost",
+            "portraitHint": "chibi sea angel (Clione), translucent icy-white body, small wing-like fins, faint orange heart glow inside, tiny snowflake hairclip, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 2,
+          "enemyHeroHp": 24,
+          "pre": [
+            { "speaker": "小葉", "text": "好冷……茶一下子就涼了。" },
+            { "speaker": "凜凜", "text": "站住！你是來偷冷泉的吧？" },
+            { "speaker": "小葉", "text": "我是來問冷流的事。" },
+            { "speaker": "凜凜", "text": "騙人！上面的居民都嫌我們冷。" },
+            { "speaker": "凜凜", "text": "我是婆婆的徒弟，絕對不會讓你過去！" }
+          ],
+          "post": [
+            { "speaker": "凜凜", "text": "怎麼會……我明明每天都有練習。" },
+            { "speaker": "小葉", "text": "你很強。我只是剛好不想放棄。" },
+            { "speaker": "凜凜", "text": "……你真的不是來偷東西的？" },
+            { "speaker": "小葉", "text": "我只帶了飯糰跟筆電。" },
+            { "speaker": "凜凜", "text": "婆婆在最深處。先過冰窖那關吧。" }
+          ],
+          "defeat": [
+            { "speaker": "凜凜", "text": "哼，深谷不歡迎外人。" },
+            { "speaker": "小葉", "text": "我會再來的。下次帶熱茶。" }
+          ]
+        },
+        {
+          "id": "ch2-b2",
+          "title": "冰窖的瞌睡蟲",
+          "enemy": {
+            "name": "冰糖",
+            "species": "白雪海牛",
+            "faction": "frost",
+            "portraitHint": "chibi white nudibranch, snow-white body with tiny pale-blue frills like sugar crystals, sleepy drooping rhinophores, wrapped in a pastel blue blanket, holding a candy, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 3,
+          "enemyHeroHp": 25,
+          "pre": [
+            { "speaker": "冰糖", "text": "呼……呼……" },
+            { "speaker": "小葉", "text": "不好意思，請問可以通過嗎？" },
+            { "speaker": "冰糖", "text": "嗯？誰吵醒我？我已經三天沒睡了……" },
+            { "speaker": "小葉", "text": "三天？你們也在加班嗎？" },
+            { "speaker": "冰糖", "text": "婆婆說冷泉不能停，冰窖要一直顧著。" },
+            { "speaker": "冰糖", "text": "想過去？贏了我，我就可以去睡了。" }
+          ],
+          "post": [
+            { "speaker": "冰糖", "text": "好耶，輸了，終於可以睡了。" },
+            { "speaker": "小葉", "text": "你們為什麼要一直放冷流？" },
+            { "speaker": "冰糖", "text": "因為礁頂越來越熱，珊瑚都在發燒。" },
+            { "speaker": "冰糖", "text": "婆婆說，不降溫珊瑚會全部白掉。" },
+            { "speaker": "小葉", "text": "原來大家都在救同一件事。" },
+            { "speaker": "冰糖", "text": "嗯……晚安……" }
+          ],
+          "defeat": [
+            { "speaker": "冰糖", "text": "贏了……那我還是不能睡……" },
+            { "speaker": "小葉", "text": "抱歉，我下次會更快結束的。" }
+          ]
+        },
+        {
+          "id": "ch2-b3",
+          "title": "霜之長老",
+          "enemy": {
+            "name": "凍凍婆婆",
+            "species": "雪花海星",
+            "faction": "frost",
+            "portraitHint": "chibi five-armed sea star, frosty white with light-blue ice crystal patterns, knitted pastel scarf, small ice cane, calm elder posture, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 3,
+          "enemyHeroHp": 26,
+          "pre": [
+            { "speaker": "凍凍婆婆", "text": "上面的葉子，來這裡做什麼。" },
+            { "speaker": "小葉", "text": "冷流把洋流凍住了，養分送不進礁石。" },
+            { "speaker": "凍凍婆婆", "text": "不降溫，珊瑚會先熱死。" },
+            { "speaker": "小葉", "text": "可是太冷，珊瑚也會凍傷。" },
+            { "speaker": "凍凍婆婆", "text": "年輕人總是只看一邊。" },
+            { "speaker": "凍凍婆婆", "text": "讓我看看，你能不能扛住我的冰。" }
+          ],
+          "post": [
+            { "speaker": "凍凍婆婆", "text": "好孩子，你的葉子還沒放棄光。" },
+            { "speaker": "小葉", "text": "婆婆，熱是從哪裡來的？" },
+            { "speaker": "凍凍婆婆", "text": "礁頂。最近夜晚都不會暗。" },
+            { "speaker": "凍凍婆婆", "text": "沒有夜晚，珊瑚就沒辦法休息降溫。" },
+            { "speaker": "凍凍婆婆", "text": "我先收小冷泉。這片霜葉，帶著吧。" },
+            { "speaker": "小葉", "text": "謝謝婆婆。我會把夜晚找回來。" },
+            { "speaker": "凍凍婆婆", "text": "你的葉片紋路……很像傳說中的古藻森林。" }
+          ],
+          "defeat": [
+            { "speaker": "凍凍婆婆", "text": "還太嫩了。回去暖暖身子吧。" },
+            { "speaker": "凜凜", "text": "婆婆，他還會再來的。" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch3",
+      "title": "第 3 章　不熄的星光祭",
+      "summary": "小葉回到礁頂，發現星光祭全年無休、夜晚消失。追查排班表後，揭開鮟部長的「24 小時不熄燈計畫」，最終說服大家恢復夜晚。",
+      "battles": [
+        {
+          "id": "ch3-b1",
+          "title": "唱不停的歌手",
+          "enemy": {
+            "name": "啾啾",
+            "species": "海月水母",
+            "faction": "light",
+            "portraitHint": "chibi moon jellyfish, translucent round bell, pastel pink-purple star dots, four-leaf clover pattern, ribbon-like tentacles, soft glow, tiny microphone, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 4,
+          "enemyHeroHp": 27,
+          "pre": [
+            { "speaker": "啾啾", "text": "歡迎來到星光祭～今天也不打烊！" },
+            { "speaker": "小葉", "text": "現在是半夜三點耶。" },
+            { "speaker": "啾啾", "text": "星光祭沒有半夜！大家要一直開心！" },
+            { "speaker": "小葉", "text": "你的聲音聽起來好啞。" },
+            { "speaker": "啾啾", "text": "沒、沒關係！停下來大家就會忘記我。" },
+            { "speaker": "啾啾", "text": "想讓我停？先聽完我的安可曲！" }
+          ],
+          "post": [
+            { "speaker": "啾啾", "text": "……好累。原來我這麼累。" },
+            { "speaker": "小葉", "text": "停下來休息，大家也不會忘記你。" },
+            { "speaker": "啾啾", "text": "真的嗎？" },
+            { "speaker": "小葉", "text": "真的。剛才我就記得你唱的每一首。" },
+            { "speaker": "啾啾", "text": "可是排班表是閃閃排的，我不能自己停。" },
+            { "speaker": "小葉", "text": "那我去找閃閃。" }
+          ],
+          "defeat": [
+            { "speaker": "啾啾", "text": "下一首！下一首！星光不能停！" },
+            { "speaker": "小葉", "text": "這樣下去，她會撐不住的……" }
+          ]
+        },
+        {
+          "id": "ch3-b2",
+          "title": "完美的排班表",
+          "enemy": {
+            "name": "閃閃",
+            "species": "螢火魷",
+            "faction": "light",
+            "portraitHint": "chibi firefly squid, deep indigo body with tiny blue glowing dots, headset microphone, clipboard with schedule, nervous tentacles, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 4,
+          "enemyHeroHp": 28,
+          "pre": [
+            { "speaker": "閃閃", "text": "第 1024 場，燈光三號準備！" },
+            { "speaker": "小葉", "text": "閃閃，可以讓啾啾休息嗎？" },
+            { "speaker": "閃閃", "text": "不行！排班表一格都不能空！" },
+            { "speaker": "小葉", "text": "是誰要求一格都不能空？" },
+            { "speaker": "閃閃", "text": "那是上面的規定，出錯我就完了。" },
+            { "speaker": "閃閃", "text": "你要是打亂舞台，我就用燈光把你照暈！" }
+          ],
+          "post": [
+            { "speaker": "閃閃", "text": "燈光……全亂了。" },
+            { "speaker": "小葉", "text": "亂一點也沒關係，大家都還好好的。" },
+            { "speaker": "閃閃", "text": "……其實我也好想關燈睡覺。" },
+            { "speaker": "閃閃", "text": "排班表給你看，上面有核准章。" },
+            { "speaker": "小葉", "text": "「暖光礁營運部長・鮟」……？" },
+            { "speaker": "閃閃", "text": "部長在礁頂最亮的地方。他從來不熄燈。" }
+          ],
+          "defeat": [
+            { "speaker": "閃閃", "text": "舞台不能停，請離開工作區域。" },
+            { "speaker": "小葉", "text": "再一次，我一定拿到那張排班表。" }
+          ]
+        },
+        {
+          "id": "ch3-b3",
+          "title": "不熄燈的部長",
+          "enemy": {
+            "name": "鮟部長",
+            "species": "燈籠鮟鱇",
+            "faction": "neutral",
+            "portraitHint": "chibi anglerfish, round navy-purple body, glowing warm-yellow lantern lure on head, thin round glasses, necktie, holding a KPI clipboard, serious but not scary, watercolor and colored pencil, soft macaron palette"
+          },
+          "difficulty": 5,
+          "enemyHeroHp": 30,
+          "pre": [
+            { "speaker": "鮟部長", "text": "你就是在各部門到處跑的那位專員？" },
+            { "speaker": "小葉", "text": "部長，請把燈籠關掉，讓暖光礁有夜晚。" },
+            { "speaker": "鮟部長", "text": "關燈？產能會下降百分之四十。" },
+            { "speaker": "小葉", "text": "可是珊瑚在白化，大家都累壞了。" },
+            { "speaker": "鮟部長", "text": "這個可以再優化。只要再努力一點就好。" },
+            { "speaker": "小葉", "text": "已經沒有人能再努力一點了。" },
+            { "speaker": "鮟部長", "text": "那就用數據說話。我會用四個陣營的力量證明我是對的。" }
+          ],
+          "post": [
+            { "speaker": "鮟部長", "text": "……我的計畫，輸了。" },
+            { "speaker": "小葉", "text": "這是珊瑚的溫度報表。沒有夜晚，它們一直在發燒。" },
+            { "speaker": "鮟部長", "text": "原來我只看了產能，沒看大家的狀態。" },
+            { "speaker": "鮟部長", "text": "燈籠是上面配發的，說要讓每座礁都不休息。" },
+            { "speaker": "鮟部長", "text": "……今天，就先熄燈吧。" },
+            { "speaker": "小葉", "text": "部長，要不要一起吃飯糰？準時下班的那種。" },
+            { "speaker": "鮟部長", "text": "好。這是我第一次準時下班。" }
+          ],
+          "defeat": [
+            { "speaker": "鮟部長", "text": "數據顯示，你的方案不可行。" },
+            { "speaker": "鮟部長", "text": "燈會一直亮著。請回去繼續工作。" },
+            { "speaker": "小葉", "text": "我不會放棄的。夜晚一定要回來。" }
+          ]
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "xiaoye",
+      "name": "小葉",
+      "species": "綠葉海天牛（葉羊）",
+      "faction": "leaf",
+      "description": "光合事務所的菜鳥行政專員，怕麻煩、愛吐槽自己，只想準時下班，但朋友有難時意外固執。故事主角。",
+      "portraitHint": "chibi leaf sheep sea slug (Costasiella kuroshimae), creamy white round body, purple bunny-ear rhinophores, ring of green leaves with pink tips on back, no facial features, emotes via rhinophores and effect lines, carries laptop, onigiri, green tea cup, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "keke",
+      "name": "殼殼",
+      "species": "寄居蟹",
+      "faction": "tide",
+      "description": "潮流郵局快遞員，常把包裹送錯，但很有責任感，照洋流流向送件。",
+      "portraitHint": "chibi hermit crab, pastel coral-pink shell with a small tide-wave sticker, oversized courier bag, tiny delivery cap, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "apiao",
+      "name": "阿漂",
+      "species": "海馬",
+      "faction": "tide",
+      "description": "潮陣營巡潮員，守規矩、一板一眼，其實心地柔軟。",
+      "portraitHint": "chibi seahorse, pale aqua body with light-blue stripes, curled tail holding a whistle, patrol sash, upright stiff posture, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "bobo",
+      "name": "波波",
+      "species": "海兔",
+      "faction": "tide",
+      "description": "潮流郵局局長，熱心愛操心、習慣一個人扛下所有事。為了擋住異常冷流私下改道洋流。",
+      "portraitHint": "chibi sea hare, round soft body, pastel lilac-to-blue gradient, two pairs of curly rhinophores, postman cap, seaweed mailbag, stacks of letters, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "linlin",
+      "name": "凜凜",
+      "species": "冰海天使",
+      "faction": "frost",
+      "description": "凍凍婆婆的徒弟，看起來柔弱其實很好勝，守護深谷入口。",
+      "portraitHint": "chibi sea angel (Clione), translucent icy-white body, small wing-like fins, faint orange heart glow inside, tiny snowflake hairclip, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "bingtang",
+      "name": "冰糖",
+      "species": "白雪海牛",
+      "faction": "frost",
+      "description": "深谷冰窖管理員，愛吃甜食、常打瞌睡，因為冷泉不能停而連續加班。",
+      "portraitHint": "chibi white nudibranch, snow-white body with tiny pale-blue frills like sugar crystals, sleepy drooping rhinophores, wrapped in a pastel blue blanket, holding a candy, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "dongdong",
+      "name": "凍凍婆婆",
+      "species": "雪花海星",
+      "faction": "frost",
+      "description": "深谷冷泉的守護長老，嚴肅話少、嘴硬心軟。察覺礁石過熱而加大冷流降溫。",
+      "portraitHint": "chibi five-armed sea star, frosty white with light-blue ice crystal patterns, knitted pastel scarf, small ice cane, calm elder posture, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "jiujiu",
+      "name": "啾啾",
+      "species": "海月水母",
+      "faction": "light",
+      "description": "星光祭當紅歌手，樂觀愛表現，怕停下來就被大家遺忘，因此唱到嗓子沙啞。",
+      "portraitHint": "chibi moon jellyfish, translucent round bell, pastel pink-purple star dots, four-leaf clover pattern, ribbon-like tentacles, soft glow, tiny microphone, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "shanshan",
+      "name": "閃閃",
+      "species": "螢火魷",
+      "faction": "light",
+      "description": "星光祭舞台總監，追求完美、怕出錯，照著上級的排班表讓舞台全年無休。",
+      "portraitHint": "chibi firefly squid, deep indigo body with tiny blue glowing dots, headset microphone, clipboard with schedule, nervous tentacles, watercolor and colored pencil, soft macaron palette"
+    },
+    {
+      "id": "anbuzhang",
+      "name": "鮟部長",
+      "species": "燈籠鮟鱇",
+      "faction": "neutral",
+      "description": "深海派來的暖光礁營運部長，認真拘謹的工作狂，推行 24 小時不熄燈計畫導致珊瑚白化。最終戰使用混合四陣營牌組。",
+      "portraitHint": "chibi anglerfish, round navy-purple body, glowing warm-yellow lantern lure on head, thin round glasses, necktie, holding a KPI clipboard, serious but not scary, watercolor and colored pencil, soft macaron palette"
+    }
+  ]
+}
