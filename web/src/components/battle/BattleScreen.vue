@@ -6,7 +6,7 @@ import CardView from '@/components/CardView.vue'
 import { chooseAction, MAX_ACTIONS_PER_TURN } from '@/ai'
 import { characterByName, cardDb, tokens } from '@/content'
 import { cardArtUrl } from '@/content/cardStyle'
-import { createRng, type Action, type Card, type GameEvent, type PlayerId } from '@/engine'
+import { createRng, hasNoActions, type Action, type Card, type GameEvent, type PlayerId } from '@/engine'
 import { Animator } from '@/fx/animator'
 import { TIMING } from '@/fx/animationPlan'
 import { audio, type BgmName } from '@/fx/audio'
@@ -75,6 +75,7 @@ let field: Battlefield | null = null
 let animator: Animator | null = null
 let disposed = false
 let hintTimer: ReturnType<typeof setTimeout> | undefined
+let autoEndTimer: ReturnType<typeof setTimeout> | undefined
 let hoverTimer: ReturnType<typeof setTimeout> | undefined
 let resizeObserver: ResizeObserver | null = null
 let battleSeed = props.seed ?? (Date.now() >>> 0)
@@ -235,6 +236,25 @@ function showHint(text: string, error = true): void {
   hintTimer = setTimeout(() => (hint.value = null), 1200)
 }
 
+// 我方無可用動作時提示後自動結束回合
+const AUTO_END = { delayMs: 1000, hint: '無可用動作' } as const
+
+function canAutoEnd(): boolean {
+  const s = store.state
+  return !!s && hasNoActions(s, 'p1') && !locked.value && !enemyTurn.value
+}
+
+function scheduleAutoEnd(): void {
+  // unmount 後 commit 的 finally 仍會呼叫，不對新對戰排計時器
+  if (disposed) return
+  clearTimeout(autoEndTimer)
+  if (!canAutoEnd()) return
+  showHint(AUTO_END.hint, false)
+  autoEndTimer = setTimeout(() => {
+    if (canAutoEnd()) endTurn()
+  }, AUTO_END.delayMs)
+}
+
 function shakeHand(id: string): void {
   const el = uiEl.value?.querySelector(`[data-hand="${id}"] .hand-inner`)
   if (el) gsap.fromTo(el, { x: -8 }, { x: 0, duration: 0.2, ease: 'elastic.out(1, 0.3)' })
@@ -301,6 +321,7 @@ async function commit(action: Action): Promise<void> {
   } finally {
     resetBoost()
     store.busy = false
+    scheduleAutoEnd()
   }
 }
 
@@ -506,6 +527,7 @@ function onKey(e: KeyboardEvent): void {
 
 function endTurn(): void {
   if (locked.value || enemyTurn.value || endLocked.value) return
+  clearTimeout(autoEndTimer)
   endLocked.value = true
   setTimeout(() => (endLocked.value = false), 500)
   audio.play('sfx_turn_end')
@@ -609,9 +631,11 @@ async function startBattle(): Promise<void> {
   await runEvents(events, false)
   resetBoost()
   store.busy = false
+  scheduleAutoEnd()
 }
 
 function onGameOver(): void {
+  clearTimeout(autoEndTimer)
   const w = store.state?.winner
   outcome.value = w === 'p1' ? 'win' : w === 'p2' ? 'lose' : 'draw'
   audio.playBgm(outcome.value === 'win' ? 'bgm_victory' : 'bgm_defeat')
@@ -675,6 +699,7 @@ onMounted(async () => {
 onUnmounted(() => {
   disposed = true
   clearTimeout(hintTimer)
+  clearTimeout(autoEndTimer)
   clearTimeout(hoverTimer)
   resizeObserver?.disconnect()
   window.removeEventListener('pointermove', onMove)

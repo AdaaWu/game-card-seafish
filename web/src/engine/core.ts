@@ -186,6 +186,13 @@ export function getLegalActions(state: GameState, playerId: PlayerId): Action[] 
   return actions
 }
 
+// 行動方除了結束回合之外沒有任何可執行動作
+export function hasNoActions(state: GameState, playerId: PlayerId): boolean {
+  if (state.winner !== null || state.activePlayer !== playerId) return false
+  const actions = getLegalActions(state, playerId)
+  return actions.length === 1 && actions[0]!.type === 'endTurn'
+}
+
 function playCard(ctx: Ctx, action: PlayCardAction): void {
   const { state } = ctx
   const p = state.players[state.activePlayer]
