@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Card, GameEvent } from '@/engine'
-import { planEvents, scaleMs, type PlanContext } from '@/fx/animationPlan'
+import { planEvents, scaleMs, TIMING, type PlanContext } from '@/fx/animationPlan'
 import { card } from './engine/helpers'
 
 const cards: Record<string, Card> = Object.fromEntries(
@@ -86,9 +86,15 @@ describe('planEvents 事件對應動畫指令', () => {
     expect(c.sfx).toEqual(['sfx_card_play', 'sfx_spell_cast_tide'])
   })
 
-  it('AI 回合出牌展示時間加倍', () => {
+  it('AI 回合出牌展示時間與玩家相同', () => {
     const c = only({ type: 'cardPlayed', playerId: 'p2', instanceId: 'i1', cardId: 'wave' }, ctx({ aiTurn: true }))
-    expect(c.holdMs).toBe(900)
+    expect(c.holdMs).toBe(450)
+    const m = planEvents([{ type: 'cardPlayed', playerId: 'p2', instanceId: 'i2', cardId: 'small', position: 0 }], ctx({ aiTurn: true }))
+    expect(m[0]![0]!.holdMs).toBe(250)
+  })
+
+  it('AI 每步停頓 200ms', () => {
+    expect(TIMING.aiThink).toBe(200)
   })
 
   it('打出生物拆成展示與召喚落地兩批', () => {

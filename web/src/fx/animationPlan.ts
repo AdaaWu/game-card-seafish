@@ -61,7 +61,7 @@ export const TIMING = {
   bounce: 400,
   death: { gray: 150, shrink: 450, particles: 600 },
   gameOver: 2600,
-  aiThink: 400,
+  aiThink: 200,
 } as const
 
 export const HIT_STOP = { summon: 40, attack: 80, attackHeavy: 120, freeze: 50, bubble: 60, hero: 100, finalBlow: 200 } as const
@@ -153,7 +153,7 @@ function planOne(e: GameEvent, ctx: PlanContext, prev: GameEvent | undefined, af
       const card = ctx.cards[e.cardId]
       const p = TIMING.play
       const creature = card?.type === 'creature'
-      const hold = (creature ? p.holdCreature : p.holdSpell) * (ctx.aiTurn ? 2 : 1)
+      const hold = creature ? p.holdCreature : p.holdSpell
       if (creature) {
         return [cmd('cardPlayed', e, p.move + hold, { holdMs: hold, sfx: ['sfx_card_play'] }), summonCmd(e, card)]
       }
