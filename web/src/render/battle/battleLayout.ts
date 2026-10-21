@@ -67,6 +67,7 @@ const PORTRAIT_W = 1280
 // 戰場幾何（邏輯 px）：兩排生物位於分隔線上下
 export const ROW_OFFSET = 140
 export const LANE_W = 1160
+export const MINION_H = 175
 const BOARD_HALF_H = ROW_OFFSET + 110
 
 const DESKTOP_MIN_FONT = 14
@@ -190,11 +191,9 @@ export function computeLayout(w: number, h: number): BattleLayout {
   const collapsedTop = lh - peek
   const expandedHalf = cx - mh
   const expandedTop = lh - mv - fanHeight(cardW, cardH, radius, expandedHalf)
-  const top = compact ? expandedTop : handTop
-  const handRest = compact
-    ? rect(cx - maxHalf, collapsedTop, maxHalf * 2, peek)
-    : rect(cx - maxHalf, handTop, maxHalf * 2, lh - mv - handTop)
-  below.push(handRest)
+  const restOf = (t: number) =>
+    compact ? rect(cx - maxHalf, collapsedTop, maxHalf * 2, peek) : rect(cx - maxHalf, t, maxHalf * 2, lh - mv - t)
+  below.push(restOf(handTop))
 
   // 戰場：夾在上下兩群之間，盡量置中
   const laneX0 = cx - LANE_W / 2
@@ -205,6 +204,11 @@ export function computeLayout(w: number, h: number): BattleLayout {
   const want = lh / 2 - 20
   const boardCy = lo > hi ? (lo + hi) / 2 : Math.min(Math.max(want, lo), hi)
   const board = rect(laneX0, boardCy - BOARD_HALF_H, LANE_W, BOARD_HALF_H * 2)
+
+  // 桌機手牌上緣與我方生物至少留 40，不足時手牌往下沉
+  if (arrangement === 'side' && !compact) handTop = Math.max(handTop, boardCy + ROW_OFFSET + MINION_H / 2 + 40)
+  const top = compact ? expandedTop : handTop
+  const handRest = restOf(handTop)
 
   if (arrangement === 'side') {
     endTurn = rect(lw - mh - endW, boardCy - endH / 2, endW, endH)

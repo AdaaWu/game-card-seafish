@@ -6,7 +6,7 @@ import type { ShakeLevel } from '@/fx/animationPlan'
 import type { ViewMinion } from './viewModel'
 import { MinionTextureCache } from './minionTexture'
 import { assetUrls } from '@/content/assetUrls'
-import { DESIGN_H, DESIGN_W, LANE_W, ROW_OFFSET } from './battleLayout'
+import { DESIGN_H, DESIGN_W, LANE_W, MINION_H as MINION_LOGICAL_H, ROW_OFFSET } from './battleLayout'
 
 const FOV = 30
 const CAM_Z = 30
@@ -19,7 +19,7 @@ const px = (n: number) => n / PX_PER_UNIT
 const ROW_Y: Record<PlayerId, number> = { p1: -px(ROW_OFFSET), p2: px(ROW_OFFSET) }
 const SPACING = px(168)
 const MINION_W = px(140)
-const MINION_H = px(175)
+const MINION_H = px(MINION_LOGICAL_H)
 const BURST_POOL = 24
 const BUBBLE_COUNT = 30
 const SHAKE_PX: Record<ShakeLevel, [number, number]> = { none: [0, 0], light: [4, 120], medium: [8, 200], heavy: [14, 320] }

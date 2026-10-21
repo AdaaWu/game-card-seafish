@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HAND_LAYOUT } from '@/content/cardStyle'
-import { computeLayout, type BattleLayout, type Rect } from '@/render/battle/battleLayout'
+import { MINION_H, ROW_OFFSET, computeLayout, type BattleLayout, type Rect } from '@/render/battle/battleLayout'
 
 // 舞台尺寸 = 視窗扣掉 clamp(4px, 1.2vh, 16px) 的外框
 const stage = (w: number, h: number): [number, number] => {
@@ -143,6 +143,14 @@ describe('computeLayout 對戰版面', () => {
     expect(computeLayout(...stage(768, 1024)).arrangement).toBe('stack')
     expect(computeLayout(...stage(1280, 720)).arrangement).toBe('side')
   })
+
+  it.each(LANDSCAPE.filter(([w, h]) => computeLayout(...stage(w, h)).compact === false))(
+    '%i×%i 桌機手牌上緣與我方生物下緣至少留 40',
+    (w, h) => {
+      const l = computeLayout(...stage(w, h))
+      expect(l.hand.top).toBeGreaterThanOrEqual(l.boardCy + ROW_OFFSET + MINION_H / 2 + 40)
+    },
+  )
 
   it('出牌線在戰場下緣與手牌之間', () => {
     for (const [w, h] of ALL) {
