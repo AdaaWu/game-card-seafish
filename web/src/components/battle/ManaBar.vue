@@ -1,14 +1,13 @@
 <script setup lang="ts">
-// 潮能水晶：10 顆水滴，旁邊一定有數字
-withDefaults(defineProps<{ mana: number; maxMana: number; preview?: number; small?: boolean; warn?: number }>(), {
-  preview: 0,
-  small: false,
-  warn: 0,
-})
+// 潮能水晶：10 顆水滴，旁邊一定有數字；深色底板維持對比
+withDefaults(
+  defineProps<{ mana: number; maxMana: number; preview?: number; warn?: number; drop: number; font: number }>(),
+  { preview: 0, warn: 0 },
+)
 </script>
 
 <template>
-  <div class="mana" :class="{ small }" :aria-label="`潮能 ${mana}/${maxMana}`">
+  <div class="mana" :style="{ '--d': `${drop}px`, '--f': `${font}px` }" :aria-label="`潮能 ${mana}/${maxMana}`">
     <div class="drops">
       <span
         v-for="i in 10"
@@ -18,50 +17,68 @@ withDefaults(defineProps<{ mana: number; maxMana: number; preview?: number; smal
         :style="{ transitionDelay: `${i * 50}ms` }"
       />
     </div>
-    <span :key="warn" class="num" :class="{ warn: warn > 0 }">{{ mana }}/{{ maxMana }}</span>
+    <span :key="warn" class="num" :class="{ warn: warn > 0 }">
+      <b>{{ mana }}</b><span class="slash">/</span>{{ maxMana }}
+    </span>
   </div>
 </template>
 
 <style scoped>
 .mana {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-}
-.mana.small {
-  transform: scale(0.7);
-  transform-origin: left center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(46, 39, 66, 0.82);
+  box-shadow:
+    inset 0 0 0 2px rgba(169, 212, 236, 0.55),
+    var(--shadow);
 }
 .drops {
   display: flex;
-  gap: 4px;
+  gap: calc(var(--d) * 0.22);
 }
 .drop {
-  width: 20px;
-  height: 26px;
+  width: var(--d);
+  height: calc(var(--d) * 1.3);
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  border: 2.5px solid #5b9bc9;
+  border: 2.5px solid #8cc4e8;
   box-sizing: border-box;
   background: transparent;
   transition: background 0.2s;
 }
 .drop.full {
-  background: var(--c-sky);
+  border-color: #e8f6ff;
+  background: radial-gradient(circle at 35% 30%, #fff 0 18%, #a9d4ec 40%, #5b9bc9);
+  box-shadow: 0 0 6px rgba(169, 212, 236, 0.9);
 }
 .drop.locked {
-  opacity: 0.35;
+  opacity: 0.3;
 }
 .drop.preview {
   animation: blink 0.6s ease-in-out infinite;
 }
 .num {
-  font: 800 28px var(--font-num);
+  flex: 1;
+  text-align: right;
+  white-space: nowrap;
+  font: 800 var(--f) var(--font-num);
+  line-height: 1;
   color: #fff;
-  -webkit-text-stroke: 2px var(--c-ink);
-  paint-order: stroke fill;
 }
-.num.warn {
-  color: var(--c-debuff);
+.num b {
+  font-weight: 900;
+  color: #bfe6ff;
+}
+.slash {
+  margin: 0 0.08em;
+  opacity: 0.8;
+}
+.num.warn,
+.num.warn b {
+  color: #ff9a96;
   animation: wobble 0.3s;
 }
 @keyframes blink {

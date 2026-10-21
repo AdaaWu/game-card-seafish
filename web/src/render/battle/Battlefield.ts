@@ -1,23 +1,21 @@
-// three.js 戰場：海底背景、雙方 6 格場地、場上生物與特效；以 1920×1080 邏輯座標對外
+// three.js 戰場：海底背景、雙方 6 格場地、場上生物與特效；以版面的邏輯座標對外
 import * as THREE from 'three'
 import gsap from 'gsap'
 import type { Card, PlayerId } from '@/engine'
 import type { ShakeLevel } from '@/fx/animationPlan'
 import type { ViewMinion } from './viewModel'
 import { MinionTextureCache } from './minionTexture'
-
-export const LOGICAL_W = 1920
-export const LOGICAL_H = 1080
+import { DESIGN_H, DESIGN_W, LANE_W, ROW_OFFSET } from './battleLayout'
 
 const FOV = 30
 const CAM_Z = 30
 const VISIBLE_H = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2))
-export const PX_PER_UNIT = LOGICAL_H / VISIBLE_H
+// 邏輯 px 與世界單位固定比例；舞台變高時鏡頭拉遠，生物大小不變
+const PX_PER_UNIT = DESIGN_H / VISIBLE_H
 
 const px = (n: number) => n / PX_PER_UNIT
-export const ROW_Y_PX: Record<PlayerId, number> = { p1: 665, p2: 375 }
-const ROW_Y: Record<PlayerId, number> = { p1: px(540 - ROW_Y_PX.p1), p2: px(540 - ROW_Y_PX.p2) }
-export const DIVIDER_Y_PX = 520
+// 世界原點為潮汐分隔線中心
+const ROW_Y: Record<PlayerId, number> = { p1: -px(ROW_OFFSET), p2: px(ROW_OFFSET) }
 const SPACING = px(168)
 const MINION_W = px(140)
 const MINION_H = px(175)
@@ -29,6 +27,7 @@ interface MinionObj {
   id: string
   pid: PlayerId
   root: THREE.Group
+  // 事件動畫（受擊、選取、搖頭）用的子層，不做待機漂浮
   bob: THREE.Group
   card: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>
   ready: THREE.Mesh
@@ -37,7 +36,6 @@ interface MinionObj {
   bubble: THREE.Mesh
   key: string
   vm: ViewMinion
-  phase: number
 }
 
 function radialTexture(inner: string, outer: string, size = 128, ring = false): THREE.CanvasTexture {
@@ -120,7 +118,7 @@ function backgroundTexture(): THREE.CanvasTexture {
 export class Battlefield {
   readonly renderer: THREE.WebGLRenderer
   private readonly scene = new THREE.Scene()
-  private readonly camera = new THREE.PerspectiveCamera(FOV, LOGICAL_W / LOGICAL_H, 0.1, 100)
+  private readonly camera = new THREE.PerspectiveCamera(FOV, DESIGN_W / DESIGN_H, 0.1, 200)
   private readonly rig = new THREE.Group()
   private readonly raycaster = new THREE.Raycaster()
   private readonly ndc = new THREE.Vector2()
@@ -151,6 +149,11 @@ export class Battlefield {
   private readonly spots: THREE.Sprite[] = []
   private selectedId: string | null = null
   private reducedMotion: boolean
+  private lw = DESIGN_W
+  private lh = DESIGN_H
+  private boardCy = DESIGN_H / 2
+  private readonly camBase = new THREE.Vector3(0, 0, CAM_Z)
+  private bubbleHalf = { x: 15, y: 9 }
 
   private readonly container: HTMLElement
 
@@ -212,15 +215,15 @@ export class Battlefield {
     this.disposables.push(bubbleGeo, pointsMat)
 
     // 潮汐分隔線
-    const dividerGeo = new THREE.PlaneGeometry(px(1500), px(4))
+    const dividerGeo = new THREE.PlaneGeometry(px(LANE_W + 200), px(4))
     const dividerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false })
     const divider = new THREE.Mesh(dividerGeo, dividerMat)
-    divider.position.set(0, px(540 - DIVIDER_Y_PX), -0.5)
+    divider.position.set(0, 0, -0.5)
     this.scene.add(divider)
     this.disposables.push(dividerGeo, dividerMat)
 
     // 雙方場地底色
-    const laneGeo = new THREE.PlaneGeometry(px(1160), px(210))
+    const laneGeo = new THREE.PlaneGeometry(px(LANE_W), px(210))
     const laneMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, depthWrite: false })
     for (const pid of ['p1', 'p2'] as const) {
       const lane = new THREE.Mesh(laneGeo, laneMat)
@@ -278,20 +281,48 @@ export class Battlefield {
     this.camera.updateProjectionMatrix()
   }
 
+  // 依版面的邏輯尺寸調整鏡頭距離與高度，讓分隔線落在 boardCy
+  setView(lw: number, lh: number, boardCy: number): void {
+    this.lw = lw
+    this.lh = lh
+    this.boardCy = boardCy
+    this.camBase.set(0, px(boardCy - lh / 2), (CAM_Z * lh) / DESIGN_H)
+    gsap.killTweensOf(this.camera.position)
+    this.camera.position.copy(this.camBase)
+    this.camera.aspect = lw / lh
+    this.camera.updateProjectionMatrix()
+    this.bubbleHalf = { x: px(lw) / 2, y: px(lh) / 2 + 1 }
+    const pos = this.bubbles.geometry.getAttribute('position') as THREE.BufferAttribute
+    const arr = pos.array as Float32Array
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 2 * this.bubbleHalf.x
+      arr[i * 3 + 1] = this.camBase.y + (Math.random() - 0.5) * 2 * this.bubbleHalf.y
+    }
+    pos.needsUpdate = true
+  }
+
+  // 重新開局：清空場上並把鏡頭歸位
+  reset(): void {
+    for (const id of [...this.minions.keys()]) this.destroyMinion(id)
+    this.order.p1 = []
+    this.order.p2 = []
+    this.selectedId = null
+    this.seam.visible = false
+    gsap.killTweensOf(this.camera.position)
+    this.camera.position.copy(this.camBase)
+  }
+
   private frame(): void {
     this.timer.update()
     const dt = Math.min(this.timer.getDelta(), 0.1)
     const t = this.timer.getElapsed()
-    for (const m of this.minions.values()) {
-      m.bob.position.y = m.vm.frozen ? 0 : Math.sin(t * ((2 * Math.PI) / 3) + m.phase) * px(4)
-    }
     this.highlightMat.opacity = 0.6 + 0.35 * Math.sin(t * ((2 * Math.PI) / 1.2))
     const pos = this.bubbles.geometry.getAttribute('position') as THREE.BufferAttribute
     const arr = pos.array as Float32Array
     for (let i = 0; i < BUBBLE_COUNT; i++) {
       arr[i * 3 + 1]! += this.bubbleSpeed[i]! * dt
       arr[i * 3]! += Math.sin(t + i) * 0.002
-      if (arr[i * 3 + 1]! > 9) arr[i * 3 + 1] = -9
+      if (arr[i * 3 + 1]! > this.camBase.y + this.bubbleHalf.y) arr[i * 3 + 1] = this.camBase.y - this.bubbleHalf.y
     }
     pos.needsUpdate = true
     for (const s of this.spots) {
@@ -305,12 +336,12 @@ export class Battlefield {
   // ---------- 座標 ----------
 
   logicalToWorld(x: number, y: number, out = new THREE.Vector3()): THREE.Vector3 {
-    return out.set(px(x - LOGICAL_W / 2), px(LOGICAL_H / 2 - y), 0)
+    return out.set(px(x - this.lw / 2), px(this.boardCy - y), 0)
   }
 
   worldToLogical(v: THREE.Vector3): { x: number; y: number } {
     this.tmp.copy(v).project(this.camera)
-    return { x: ((this.tmp.x + 1) / 2) * LOGICAL_W, y: ((1 - this.tmp.y) / 2) * LOGICAL_H }
+    return { x: ((this.tmp.x + 1) / 2) * this.lw, y: ((1 - this.tmp.y) / 2) * this.lh }
   }
 
   minionLogical(id: string): { x: number; y: number } | null {
@@ -325,7 +356,7 @@ export class Battlefield {
   }
 
   pick(x: number, y: number): string | null {
-    this.ndc.set((x / LOGICAL_W) * 2 - 1, -((y / LOGICAL_H) * 2 - 1))
+    this.ndc.set((x / this.lw) * 2 - 1, -((y / this.lh) * 2 - 1))
     this.raycaster.setFromCamera(this.ndc, this.camera)
     const meshes: THREE.Object3D[] = []
     for (const m of this.minions.values()) meshes.push(m.card)
@@ -335,7 +366,7 @@ export class Battlefield {
 
   // 依 x 座標算出我方插入位置
   insertIndexAt(x: number): number {
-    const wx = px(x - LOGICAL_W / 2)
+    const wx = px(x - this.lw / 2)
     const ids = this.order.p1
     let index = 0
     ids.forEach((id, i) => {
@@ -346,7 +377,7 @@ export class Battlefield {
   }
 
   isOverRow(pid: PlayerId, y: number): boolean {
-    return Math.abs(px(LOGICAL_H / 2 - y) - ROW_Y[pid]) < MINION_H * 0.75
+    return Math.abs(px(this.boardCy - y) - ROW_Y[pid]) < MINION_H * 0.75
   }
 
   showSeam(index: number | null): void {
@@ -407,7 +438,7 @@ export class Battlefield {
     bubble.visible = vm.keywords.includes('bubble')
     bob.add(ready, highlight, card, ice, bubble)
     this.scene.add(root)
-    const obj: MinionObj = { id: vm.instanceId, pid, root, bob, card, ready, highlight, ice, bubble, key, vm: { ...vm }, phase: Math.random() * Math.PI * 2 }
+    const obj: MinionObj = { id: vm.instanceId, pid, root, bob, card, ready, highlight, ice, bubble, key, vm: { ...vm } }
     this.minions.set(vm.instanceId, obj)
     return obj
   }
@@ -689,8 +720,9 @@ export class Battlefield {
   // 致命一擊：鏡頭推近敗方英雄
   tlFinalPush(target: THREE.Vector3): gsap.core.Timeline {
     const tl = gsap.timeline()
-    tl.to(this.camera.position, { x: target.x * 0.35, y: target.y * 0.35, z: CAM_Z * 0.82, duration: 0.8, ease: 'power2.out' })
-    tl.to(this.camera.position, { x: 0, y: 0, z: CAM_Z, duration: 0.6, ease: 'power2.inOut' }, '+=0.4')
+    const b = this.camBase
+    tl.to(this.camera.position, { x: target.x * 0.35, y: b.y + (target.y - b.y) * 0.35, z: b.z * 0.82, duration: 0.8, ease: 'power2.out' })
+    tl.to(this.camera.position, { x: b.x, y: b.y, z: b.z, duration: 0.6, ease: 'power2.inOut' }, '+=0.4')
     return tl
   }
 

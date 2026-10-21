@@ -9,9 +9,11 @@ import { cardArtUrl } from '@/content/cardStyle'
 import { createRng, type Action, type Card, type GameEvent, type PlayerId } from '@/engine'
 import { Animator } from '@/fx/animator'
 import { TIMING } from '@/fx/animationPlan'
-import { audio } from '@/fx/audio'
+import { audio, type BgmName } from '@/fx/audio'
 import { loadImage } from '@/render/cardTexture'
-import { Battlefield, LOGICAL_H, LOGICAL_W } from '@/render/battle/Battlefield'
+import { Battlefield } from '@/render/battle/Battlefield'
+import { computeLayout, DESIGN_H, DESIGN_W, type Rect } from '@/render/battle/battleLayout'
+import { roundsOf } from '@/render/battle/viewModel'
 import { useBattleStore } from '@/stores/battle'
 import { useSettingsStore } from '@/stores/settings'
 import BattleResult from './BattleResult.vue'
@@ -21,6 +23,7 @@ import HeroPanel from './HeroPanel.vue'
 import ManaBar from './ManaBar.vue'
 import TargetArrow from './TargetArrow.vue'
 import { createBattleStage, type StageFx } from './battleStage'
+import { PLAYER_PORTRAIT_ID } from './opponents'
 
 type Outcome = 'win' | 'lose' | 'draw'
 
@@ -30,14 +33,16 @@ const props = withDefaults(
     enemyDeck: string[]
     enemyName: string
     enemyHeroHp: number
+    enemyPortraitId?: string
     seed?: number
+    // 重新挑戰時恢復的對戰音樂
+    bgm?: BgmName
   }>(),
-  { seed: undefined },
+  { seed: undefined, enemyPortraitId: undefined, bgm: 'bgm_battle_normal' },
 )
 const emit = defineEmits<{ finished: [result: Outcome] }>()
 
 const PLAYER_NAME = '小葉'
-const PLAY_LINE = LOGICAL_H * 0.72
 const END: Action = { type: 'endTurn' }
 const EMPTY: ReadonlySet<string> = new Set<string>()
 
@@ -48,14 +53,19 @@ const enemyFaction = computed(() => characterByName(props.enemyName)?.faction ??
 const view = computed(() => store.view)
 const speed = computed(() => settings.settings.speed)
 
-const outerEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
 const glEl = ref<HTMLElement | null>(null)
 const uiEl = ref<HTMLElement | null>(null)
 const fxEl = ref<HTMLElement | null>(null)
-const scale = ref(1)
+const layout = shallowRef(computeLayout(DESIGN_W, DESIGN_H))
+const scale = computed(() => layout.value.scale)
+const playLine = computed(() => layout.value.playLine)
 const loading = ref(true)
-const portrait = ref(false)
+const portrait = computed(() => layout.value.rotateHint)
+// 手機橫向：手牌預設收合，點手牌區展開
+const handOpen = ref(false)
+const handState = computed(() => (!layout.value.compact ? 'fan' : handOpen.value ? 'expanded' : 'collapsed'))
+const boosted = ref(false)
 const outcome = ref<Outcome | null>(null)
 const fx = reactive<StageFx>({ banner: null, showcase: null, lowSaturation: false })
 const hint = ref<{ text: string; key: number } | null>(null)
@@ -67,8 +77,8 @@ let disposed = false
 let hintTimer: ReturnType<typeof setTimeout> | undefined
 let hoverTimer: ReturnType<typeof setTimeout> | undefined
 let resizeObserver: ResizeObserver | null = null
-const battleSeed = props.seed ?? (Date.now() >>> 0)
-const aiRng = createRng((battleSeed ^ 0x5bd1e995) >>> 0)
+let battleSeed = props.seed ?? (Date.now() >>> 0)
+let aiRng = createRng((battleSeed ^ 0x5bd1e995) >>> 0)
 
 // ---------- 互動狀態 ----------
 type Source = { type: 'play'; id: string; position?: number } | { type: 'attack'; id: string }
@@ -85,13 +95,24 @@ const handHover = ref<string | null>(null)
 const minionHover = ref<string | null>(null)
 const detail = shallowRef<{
   card: Card
-  attack?: number
-  health?: number
-  keywords?: string[]
+  // 場上生物：數值隨顯示狀態即時更新
+  minionId?: string
   x: number
   y: number
   side: 'left' | 'right'
 } | null>(null)
+const detailView = computed(() => {
+  const d = detail.value
+  if (!d) return null
+  const base = { card: d.card, x: d.x, y: d.y, side: d.side, cardW: layout.value.detailCardW, minFont: layout.value.minFont }
+  if (!d.minionId) return base
+  const pid = ownerOf(d.minionId)
+  const vm = pid ? view.value?.players[pid].board.find((m) => m.instanceId === d.minionId) : undefined
+  if (!vm) return null
+  return { ...base, attack: vm.attack, health: vm.health, keywords: vm.keywords }
+})
+const detailW = computed(() => layout.value.detailCardW + 12 + Math.max(230, layout.value.minFont * 11))
+const rounds = computed(() => roundsOf(view.value?.turn ?? 1))
 
 const locked = computed(() => store.busy || loading.value || outcome.value !== null)
 const legal = computed(() => store.legal)
@@ -130,7 +151,11 @@ const arrow = computed(() => {
   if (m.kind !== 'target') return null
   let from: { x: number; y: number } | null = null
   if (m.source.type === 'attack') from = field?.minionLogical(m.source.id) ?? null
-  else from = centerOfEl(uiEl.value?.querySelector(`[data-hand="${m.source.id}"] .hand-inner`) ?? null) ?? { x: 960, y: 800 }
+  else
+    from = centerOfEl(uiEl.value?.querySelector(`[data-hand="${m.source.id}"] .hand-inner`) ?? null) ?? {
+      x: layout.value.lw / 2,
+      y: layout.value.playLine,
+    }
   if (!from) return null
   const over = hoverTarget.value
   const snapped = over !== null && targets.value.has(over)
@@ -144,7 +169,7 @@ const dragGhost = computed(() => {
   const c = view.value.players.p1.hand.find((h) => h.instanceId === d.id)
   const card = c ? cards[c.cardId] : undefined
   if (!card) return null
-  return { card, small: pointer.y < PLAY_LINE }
+  return { card, small: pointer.y < playLine.value }
 })
 
 // ---------- 座標 ----------
@@ -174,7 +199,7 @@ function hitTarget(x: number, y: number): string | null {
   if (id) return id
   for (const pid of ['p1', 'p2'] as const) {
     const c = pointOf(`${pid}-hero`)
-    if (c && Math.hypot(c.x - x, c.y - y) < 80) return `${pid}-hero`
+    if (c && Math.hypot(c.x - x, c.y - y) < layout.value.portraitSize / 2 + 12) return `${pid}-hero`
   }
   return null
 }
@@ -185,6 +210,16 @@ function ownerOf(id: string): PlayerId | null {
   if (v.players.p1.board.some((m) => m.instanceId === id)) return 'p1'
   if (v.players.p2.board.some((m) => m.instanceId === id)) return 'p2'
   return null
+}
+
+function boost(): void {
+  animator?.boost()
+  boosted.value = true
+}
+
+function resetBoost(): void {
+  animator?.resetBoost()
+  boosted.value = false
 }
 
 // ---------- 提示 ----------
@@ -264,7 +299,7 @@ async function commit(action: Action): Promise<void> {
     await runEvents(r.events, false)
     if (!disposed && store.state?.winner === null && store.state.activePlayer === 'p2') await runAi()
   } finally {
-    animator?.resetBoost()
+    resetBoost()
     store.busy = false
   }
 }
@@ -309,6 +344,7 @@ function onHandClick(id: string): void {
   }
   if (rejectCard(id)) return
   field?.setSelected(null)
+  handOpen.value = false
   const card = cardOfHand(id)
   if (card?.type === 'creature') mode.value = { kind: 'card', id }
   else castOrTarget(id, false)
@@ -357,7 +393,13 @@ function onHandDown(id: string, e: PointerEvent): void {
   audio.unlock()
   if (e.button === 2) return
   if (locked.value) {
-    if (store.busy) animator?.boost()
+    if (store.busy) boost()
+    return
+  }
+  // 收合中先展開，不選牌
+  if (handState.value === 'collapsed' && selectedHand.value !== id) {
+    handOpen.value = true
+    detail.value = null
     return
   }
   const p = toLogical(e)
@@ -369,13 +411,18 @@ function onHandDown(id: string, e: PointerEvent): void {
 function onRootDown(e: PointerEvent): void {
   audio.unlock()
   if (store.busy) {
-    animator?.boost()
+    boost()
     return
   }
   if (locked.value) return
   if (e.button === 2) {
     cancelMode()
     return
+  }
+  // 點手牌區外收合
+  if (handOpen.value) {
+    handOpen.value = false
+    if (mode.value.kind === 'idle') return
   }
   const p = toLogical(e)
   pointer.x = p.x
@@ -389,7 +436,7 @@ function onRootDown(e: PointerEvent): void {
   }
   if (m.kind === 'card') {
     const card = cardOfHand(m.id)
-    if (p.y >= PLAY_LINE) cancelMode()
+    if (p.y >= playLine.value) cancelMode()
     else if (card?.type === 'creature') place(m.id, field?.insertIndexAt(p.x) ?? 0)
     else void commit({ type: 'playCard', cardInstanceId: m.id })
     return
@@ -400,7 +447,7 @@ function onRootDown(e: PointerEvent): void {
 function onHeroPick(pid: PlayerId): void {
   audio.unlock()
   if (store.busy) {
-    animator?.boost()
+    boost()
     return
   }
   if (locked.value) return
@@ -416,12 +463,13 @@ function onMove(e: PointerEvent): void {
   const d = drag.value
   if (d && !d.active && Math.hypot(p.x - d.sx, p.y - d.sy) > 6) {
     drag.value = { ...d, active: true }
+    handOpen.value = false
     handHover.value = null
     detail.value = null
   }
   const m = mode.value
   const draggingCard = drag.value?.active ? drag.value.id : m.kind === 'card' ? m.id : null
-  if (draggingCard && cardOfHand(draggingCard)?.type === 'creature' && p.y < PLAY_LINE && playable.value.has(draggingCard)) {
+  if (draggingCard && cardOfHand(draggingCard)?.type === 'creature' && p.y < playLine.value && playable.value.has(draggingCard)) {
     field?.showSeam(field.insertIndexAt(p.x))
   } else field?.showSeam(null)
   if (!drag.value?.active) updateMinionHover(p.x, p.y)
@@ -434,7 +482,7 @@ function onUp(e: PointerEvent): void {
     drag.value = null
     field?.showSeam(null)
     if (!d.active) onHandClick(d.id)
-    else if (p.y < PLAY_LINE) onHandRelease(d.id)
+    else if (p.y < playLine.value) onHandRelease(d.id)
     else audio.play('sfx_card_return')
     return
   }
@@ -451,7 +499,7 @@ function onKey(e: KeyboardEvent): void {
   if (e.key === 'Escape') cancelMode()
   if (e.code === 'Space' && !e.repeat) {
     e.preventDefault()
-    if (store.busy) animator?.boost()
+    if (store.busy) boost()
     else endTurn()
   }
 }
@@ -472,9 +520,12 @@ function onHandEnter(id: string): void {
   hoverTimer = setTimeout(() => {
     const card = cardOfHand(id)
     const c = centerOfEl(uiEl.value?.querySelector(`[data-hand="${id}"]`) ?? null)
-    if (!card || !c) return
-    const x = Math.min(Math.max(c.x - 150, 20), LOGICAL_W - 560)
-    detail.value = { card, x, y: 440, side: 'right' }
+    if (!card || !c || handState.value === 'collapsed') return
+    const l = layout.value
+    const h = l.detailCardW * 1.4
+    const x = clamp(c.x - l.detailCardW / 2, 20, l.lw - detailW.value - 20)
+    const y = clamp(l.playLine - h - 20, 20, l.lh - h - 20)
+    detail.value = { card, x, y, side: 'right' }
   }, 250)
 }
 
@@ -498,11 +549,17 @@ function updateMinionHover(x: number, y: number): void {
     const at = field?.minionLogical(id)
     const card = vm ? cards[vm.cardId] : undefined
     if (!vm || !at || !card) return
-    const side = at.x < LOGICAL_W / 2 ? 'right' : 'left'
-    const x = side === 'right' ? at.x + 90 : at.x - 90 - 542
-    const y = Math.min(Math.max(at.y - 210, 20), LOGICAL_H - 440)
-    detail.value = { card, attack: vm.attack, health: vm.health, keywords: vm.keywords, x, y, side }
+    const l = layout.value
+    const h = l.detailCardW * 1.4
+    const side = at.x < l.lw / 2 ? 'right' : 'left'
+    const x = clamp(side === 'right' ? at.x + 90 : at.x - 90 - detailW.value, 20, l.lw - detailW.value - 20)
+    const y = clamp(at.y - h / 2, 20, l.lh - h - 20)
+    detail.value = { card, minionId: id, x, y, side }
   }, 250)
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(Math.max(v, lo), Math.max(lo, hi))
 }
 
 // ---------- 場上外觀同步 ----------
@@ -519,6 +576,41 @@ function onContinue(): void {
   if (outcome.value) emit('finished', outcome.value)
 }
 
+// 重新挑戰：同一場換新的種子重開
+async function onRetry(): Promise<void> {
+  if (!animator || disposed) return
+  audio.play('sfx_ui_click')
+  battleSeed = (Date.now() ^ (battleSeed * 2654435761)) >>> 0
+  aiRng = createRng((battleSeed ^ 0x5bd1e995) >>> 0)
+  outcome.value = null
+  mode.value = { kind: 'idle' }
+  detail.value = null
+  hint.value = null
+  handOpen.value = false
+  fx.banner = null
+  fx.showcase = null
+  fx.lowSaturation = false
+  const heroes = uiEl.value?.querySelectorAll('[data-hero] .portrait-wrap')
+  if (heroes?.length) gsap.set(heroes, { clearProps: 'all' })
+  field?.reset()
+  audio.playBgm(props.bgm)
+  await startBattle()
+}
+
+async function startBattle(): Promise<void> {
+  if (!animator) return
+  const events = store.start({
+    playerDeck: props.playerDeck,
+    enemyDeck: props.enemyDeck,
+    enemyHeroHp: props.enemyHeroHp,
+    seed: battleSeed,
+  })
+  loading.value = false
+  await runEvents(events, false)
+  resetBoost()
+  store.busy = false
+}
+
 function onGameOver(): void {
   const w = store.state?.winner
   outcome.value = w === 'p1' ? 'win' : w === 'p2' ? 'lose' : 'draw'
@@ -526,17 +618,14 @@ function onGameOver(): void {
 }
 
 function fit(): void {
-  const outer = outerEl.value
-  if (!outer) return
-  const w = outer.clientWidth
-  const h = outer.clientHeight
-  portrait.value = h > w
-  const sw = Math.min(w, (h * 16) / 9)
-  scale.value = sw / LOGICAL_W
-  if (stageEl.value) {
-    stageEl.value.style.width = `${sw}px`
-    stageEl.value.style.height = `${(sw * 9) / 16}px`
-  }
+  const stage = stageEl.value
+  if (!stage) return
+  const w = Math.max(1, stage.clientWidth)
+  const h = Math.max(1, stage.clientHeight)
+  const l = computeLayout(w, h)
+  layout.value = l
+  if (!l.compact) handOpen.value = false
+  field?.setView(l.lw, l.lh, l.boardCy)
 }
 
 async function preloadImages(): Promise<Map<string, HTMLImageElement | null>> {
@@ -558,13 +647,14 @@ async function preloadImages(): Promise<Map<string, HTMLImageElement | null>> {
 onMounted(async () => {
   fit()
   resizeObserver = new ResizeObserver(fit)
-  if (outerEl.value) resizeObserver.observe(outerEl.value)
+  if (stageEl.value) resizeObserver.observe(stageEl.value)
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
   window.addEventListener('keydown', onKey)
   const images = await preloadImages()
   if (disposed || !glEl.value) return
   field = new Battlefield(glEl.value, cards, images)
+  field.setView(layout.value.lw, layout.value.lh, layout.value.boardCy)
   fieldReady.value = true
   animator = new Animator(
     createBattleStage({
@@ -579,16 +669,7 @@ onMounted(async () => {
     }),
     { getSpeed: () => speed.value, applyEvent: (e) => store.applyEvent(e) },
   )
-  const events = store.start({
-    playerDeck: props.playerDeck,
-    enemyDeck: props.enemyDeck,
-    enemyHeroHp: props.enemyHeroHp,
-    seed: battleSeed,
-  })
-  loading.value = false
-  await runEvents(events, false)
-  animator.resetBoost()
-  store.busy = false
+  await startBattle()
 })
 
 onUnmounted(() => {
@@ -604,18 +685,34 @@ onUnmounted(() => {
   field = null
   store.reset()
 })
+
+const pos = (r: Rect) => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` })
+const uiStyle = computed(() => {
+  const l = layout.value
+  return {
+    width: `${l.lw}px`,
+    height: `${l.lh}px`,
+    transform: `scale(${l.scale})`,
+    '--min-font': `${l.minFont}px`,
+    '--btn-h': `${l.buttonH}px`,
+  }
+})
 </script>
 
+
 <template>
-  <div ref="outerEl" class="battle-outer" @contextmenu.prevent>
-    <div v-if="portrait" class="rotate-hint">請將裝置轉為橫向</div>
-    <div ref="stageEl" class="stage" :class="{ gray: fx.lowSaturation }">
+  <div class="battle-outer" @contextmenu.prevent>
+    <div v-if="portrait" class="rotate-hint" role="alert">
+      <span class="rotate-icon" aria-hidden="true">⟳</span>
+      請將裝置轉為橫向
+    </div>
+    <div ref="stageEl" class="stage" :class="{ gray: fx.lowSaturation, hidden: portrait }">
       <div ref="glEl" class="gl" />
       <div
         ref="uiEl"
         class="ui"
-        :class="{ locked }"
-        :style="{ transform: `scale(${scale})` }"
+        :class="{ locked, compact: layout.compact }"
+        :style="uiStyle"
         data-testid="battle-ui"
         @pointerdown="onRootDown"
       >
@@ -624,19 +721,35 @@ onUnmounted(() => {
           <HeroPanel
             pid="p2"
             class="hero-p2"
+            :style="pos(layout.heroP2)"
             :name="enemyName"
+            :portrait-id="enemyPortraitId"
             :faction="enemyFaction"
             :hp="view.players.p2.hp"
             :armor="view.players.p2.armor"
             :targetable="targets.has('p2-hero')"
             :dimmed="mode.kind === 'target' && !targets.has('p2-hero')"
+            :size="layout.portraitSize"
+            :name-font="layout.nameFont"
             @pick="onHeroPick('p2')"
           />
-          <ManaBar class="mana-p2" :mana="view.players.p2.mana" :max-mana="view.players.p2.maxMana" small />
-          <div class="enemy-hand" :aria-label="`對手手牌 ${view.players.p2.hand.length} 張`">
+          <ManaBar
+            class="mana mana-p2"
+            :style="pos(layout.manaP2)"
+            :mana="view.players.p2.mana"
+            :max-mana="view.players.p2.maxMana"
+            :drop="layout.manaDrop.p2"
+            :font="layout.manaFont.p2"
+          />
+          <div class="enemy-hand" :style="pos(layout.enemyHand)" :aria-label="`對手手牌 ${view.players.p2.hand.length} 張`">
             <span v-for="c in view.players.p2.hand" :key="c.instanceId" class="back" />
           </div>
-          <div class="deck deck-p2" data-deck="p2" :class="{ few: view.players.p2.deckCount <= 5 }">
+          <div
+            class="deck deck-p2"
+            :style="[pos(layout.deckP2), { '--count': `${layout.deckFont}px` }]"
+            data-deck="p2"
+            :class="{ few: view.players.p2.deckCount <= 5 }"
+          >
             <span class="pile" />
             <span class="count">{{ view.players.p2.deckCount }}</span>
           </div>
@@ -645,21 +758,33 @@ onUnmounted(() => {
           <HeroPanel
             pid="p1"
             class="hero-p1"
+            :style="pos(layout.heroP1)"
             :name="PLAYER_NAME"
+            :portrait-id="PLAYER_PORTRAIT_ID"
             faction="leaf"
             :hp="view.players.p1.hp"
             :armor="view.players.p1.armor"
             :targetable="targets.has('p1-hero')"
             :dimmed="mode.kind === 'target' && !targets.has('p1-hero')"
+            :size="layout.portraitSize"
+            :name-font="layout.nameFont"
             @pick="onHeroPick('p1')"
           />
           <ManaBar
-            class="mana-p1"
+            class="mana mana-p1"
+            :style="pos(layout.manaP1)"
             :mana="view.players.p1.mana"
             :max-mana="view.players.p1.maxMana"
-            :preview="selectedHand ? cardOfHand(selectedHand)?.cost ?? 0 : 0"
+            :preview="selectedHand ? (cardOfHand(selectedHand)?.cost ?? 0) : 0"
+            :drop="layout.manaDrop.p1"
+            :font="layout.manaFont.p1"
           />
-          <div class="deck deck-p1" data-deck="p1" :class="{ few: view.players.p1.deckCount <= 5 }">
+          <div
+            class="deck deck-p1"
+            :style="[pos(layout.deckP1), { '--count': `${layout.deckFont}px` }]"
+            data-deck="p1"
+            :class="{ few: view.players.p1.deckCount <= 5 }"
+          >
             <span class="pile" />
             <span class="count">{{ view.players.p1.deckCount }}</span>
           </div>
@@ -667,6 +792,7 @@ onUnmounted(() => {
           <button
             class="end-turn"
             :class="endState"
+            :style="[pos(layout.endTurn), { fontSize: `${layout.endTurnFont}px` }]"
             type="button"
             :disabled="enemyTurn || locked || endLocked"
             data-testid="end-turn"
@@ -684,6 +810,8 @@ onUnmounted(() => {
             :dragging-id="drag?.active ? drag.id : null"
             :hover-id="handHover"
             :dim-others="selectedHand !== null"
+            :geo="layout.hand"
+            :state="handState"
             @down="onHandDown"
             @enter="onHandEnter"
             @leave="onHandLeave"
@@ -691,37 +819,54 @@ onUnmounted(() => {
         </template>
 
         <TargetArrow v-if="arrow" v-bind="arrow" />
-        <div v-if="mode.kind === 'target' && mode.optional" class="target-actions" @pointerdown.stop>
+        <div v-if="mode.kind === 'target' && mode.optional" class="target-actions" :style="pos(layout.actions)" @pointerdown.stop>
           <button class="btn" type="button" data-testid="play-no-target" @click="playWithoutTarget">不選目標，直接打出</button>
           <button class="btn ghost" type="button" @click="cancelMode">取消</button>
         </div>
-        <button
-          v-else-if="mode.kind !== 'idle'"
-          class="btn ghost cancel-float"
-          type="button"
-          @pointerdown.stop
-          @click="cancelMode"
+        <div v-else-if="mode.kind !== 'idle'" class="target-actions" :style="pos(layout.actions)">
+          <button class="btn ghost cancel-float" type="button" data-testid="cancel" @pointerdown.stop @click="cancelMode">取消</button>
+        </div>
+        <div
+          v-if="store.busy && enemyTurn && !outcome"
+          class="speed-tip"
+          :class="{ on: boosted }"
+          :style="pos(layout.actions)"
+          role="status"
+          data-testid="speed-tip"
         >
-          取消
-        </button>
+          <span>{{ boosted ? '加速中 ▶▶' : '點擊畫面可加速 ▶▶' }}</span>
+        </div>
 
         <div v-if="dragGhost" class="drag-ghost" :class="{ small: dragGhost.small }" :style="{ left: `${pointer.x}px`, top: `${pointer.y}px` }">
           <CardView :card="dragGhost.card" size="sm" />
         </div>
 
-        <div v-if="fx.showcase && cards[fx.showcase.cardId]" :key="fx.showcase.key" class="showcase">
+        <div
+          v-if="fx.showcase && cards[fx.showcase.cardId]"
+          :key="fx.showcase.key"
+          class="showcase"
+          :style="{ left: `${layout.lw / 2 - 150}px`, top: `${layout.boardCy - 210}px` }"
+        >
           <CardView :card="cards[fx.showcase.cardId]!" size="lg" />
         </div>
 
-        <CardDetail v-if="detail && !drag?.active" v-bind="detail" />
+        <CardDetail v-if="detailView && !drag?.active" v-bind="detailView" />
 
         <div ref="fxEl" class="fx-layer" />
         <div class="vignette" />
-        <div v-if="fx.banner" :key="fx.banner.key" class="banner">{{ fx.banner.text }}</div>
-        <div v-if="hint" :key="hint.key" class="hint" role="status">{{ hint.text }}</div>
+        <div v-if="fx.banner" :key="fx.banner.key" class="banner" :style="{ top: `${layout.boardCy - 40}px` }">{{ fx.banner.text }}</div>
+        <div v-if="hint" :key="hint.key" class="hint" :style="{ top: `${layout.board.y + 20}px` }" role="status">{{ hint.text }}</div>
         <div v-if="loading" class="loading">潛入海底中…</div>
 
-        <BattleResult v-if="outcome" :result="outcome" :speed="speed" @continue="onContinue" @pointerdown.stop />
+        <BattleResult
+          v-if="outcome"
+          :result="outcome"
+          :speed="speed"
+          :rounds="rounds"
+          @continue="onContinue"
+          @retry="onRetry"
+          @pointerdown.stop
+        />
       </div>
     </div>
   </div>
@@ -729,21 +874,34 @@ onUnmounted(() => {
 
 <style scoped>
 .battle-outer {
+  --gutter: clamp(4px, 1.2dvh, 16px);
   position: fixed;
   inset: 0;
   z-index: 5;
-  background: #bcd9ea;
-  display: grid;
-  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: max(env(safe-area-inset-top), var(--gutter)) max(env(safe-area-inset-right), var(--gutter))
+    max(env(safe-area-inset-bottom), var(--gutter)) max(env(safe-area-inset-left), var(--gutter));
+  background: linear-gradient(180deg, #e4f4f1 0%, #c6e4ee 45%, #b3d2e8 80%, #c8c1e6 100%);
   overflow: clip;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   touch-action: none;
+  overscroll-behavior: none;
 }
 .stage {
   position: relative;
+  width: 100%;
+  height: 100%;
   overflow: clip;
+  border-radius: clamp(0px, 1.2dvh, 14px);
   transition: filter 0.6s;
+}
+.stage.hidden {
+  visibility: hidden;
 }
 .stage.gray {
   filter: saturate(0.35);
@@ -756,8 +914,6 @@ onUnmounted(() => {
   position: absolute;
   left: 0;
   top: 0;
-  width: 1920px;
-  height: 1080px;
   transform-origin: 0 0;
   font-family: var(--font-ui);
   color: var(--c-ink);
@@ -765,58 +921,40 @@ onUnmounted(() => {
 .ui.locked {
   cursor: default;
 }
-.hero-p2 {
-  left: 880px;
-  top: 50px;
-}
-.hero-p1 {
-  left: 880px;
-  top: 750px;
-}
-.mana-p2 {
+.mana {
   position: absolute;
-  left: 1070px;
-  top: 112px;
-}
-.mana-p1 {
-  position: absolute;
-  left: 1070px;
-  top: 820px;
 }
 .enemy-hand {
   position: absolute;
-  left: 1250px;
-  top: -40px;
   display: flex;
 }
 .back {
-  width: 70px;
-  height: 98px;
-  margin-left: -34px;
-  border-radius: 10px;
+  flex: none;
+  width: 52px;
+  height: 72px;
+  margin-left: -24px;
+  box-sizing: border-box;
+  border-radius: 9px;
   background:
-    radial-gradient(circle at 50% 50%, #fff 0 10px, transparent 11px),
+    radial-gradient(circle at 50% 50%, #fff 0 8px, transparent 9px),
     linear-gradient(135deg, #b9a6db, #8d74c2);
   border: 3px solid #fffdf7;
-  box-shadow: var(--shadow);
+  box-shadow: 0 3px 8px rgba(62, 53, 80, 0.2);
+}
+.back:first-child {
+  margin-left: 0;
 }
 .deck {
   position: absolute;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.deck-p2 {
-  left: 1500px;
-  top: 150px;
-}
-.deck-p1 {
-  left: 1640px;
-  top: 860px;
+  gap: 10px;
 }
 .pile {
+  flex: none;
   width: 44px;
   height: 60px;
+  box-sizing: border-box;
   border-radius: 8px;
   background: linear-gradient(135deg, #b9a6db, #8d74c2);
   border: 3px solid #fffdf7;
@@ -825,10 +963,12 @@ onUnmounted(() => {
     6px 6px 0 #d8cdea;
 }
 .count {
-  font: 800 30px var(--font-num);
+  font: 800 var(--count) var(--font-num);
+  line-height: 1;
   color: #fff;
   -webkit-text-stroke: 2px var(--c-ink);
   paint-order: stroke fill;
+  white-space: nowrap;
 }
 .deck.few .count {
   color: #f0a04b;
@@ -839,13 +979,9 @@ onUnmounted(() => {
 }
 .end-turn {
   position: absolute;
-  left: 1700px;
-  top: 484px;
-  width: 160px;
-  height: 72px;
+  box-sizing: border-box;
   border: none;
   border-radius: 20px;
-  font-size: 24px;
   font-weight: 800;
   color: #fff;
   background: var(--c-lavender);
@@ -869,7 +1005,7 @@ onUnmounted(() => {
   box-shadow:
     0 5px 0 #d9c17a,
     var(--shadow);
-  animation: breathe 1.6s ease-in-out infinite;
+  animation: glow 1.6s ease-in-out infinite;
 }
 .end-turn.enemy,
 .end-turn:disabled {
@@ -879,20 +1015,37 @@ onUnmounted(() => {
 }
 .target-actions {
   position: absolute;
-  left: 1640px;
-  top: 600px;
   z-index: 36;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 12px;
-  width: 240px;
 }
-.cancel-float {
+.target-actions .btn {
+  min-height: var(--btn-h);
+  font-size: max(22px, var(--min-font));
+  padding: 0 20px;
+}
+.speed-tip {
   position: absolute;
-  left: 40px;
-  top: 960px;
   z-index: 36;
-  min-width: 96px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.speed-tip span {
+  padding: 0.4em 1em;
+  border-radius: 999px;
+  background: rgba(46, 39, 66, 0.85);
+  color: #fff;
+  font-size: max(22px, calc(var(--min-font) * 1.15));
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+}
+.speed-tip.on span {
+  background: var(--c-lavender-deep);
 }
 .drag-ghost {
   position: absolute;
@@ -906,8 +1059,6 @@ onUnmounted(() => {
 }
 .showcase {
   position: absolute;
-  left: 810px;
-  top: 150px;
   z-index: 38;
   pointer-events: none;
   filter: drop-shadow(0 12px 30px rgba(62, 53, 80, 0.35));
@@ -930,7 +1081,6 @@ onUnmounted(() => {
   position: absolute;
   left: 0;
   right: 0;
-  top: 470px;
   text-align: center;
   z-index: 50;
   pointer-events: none;
@@ -943,7 +1093,6 @@ onUnmounted(() => {
 .hint {
   position: absolute;
   left: 50%;
-  top: 300px;
   transform: translateX(-50%);
   z-index: 51;
   pointer-events: none;
@@ -951,8 +1100,9 @@ onUnmounted(() => {
   border-radius: 999px;
   background: rgba(255, 253, 247, 0.95);
   box-shadow: var(--shadow);
-  font-size: 32px;
+  font-size: max(32px, var(--min-font));
   font-weight: 800;
+  white-space: nowrap;
 }
 .loading {
   position: absolute;
@@ -969,11 +1119,19 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   z-index: 80;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
   background: var(--c-cream);
   font-size: 22px;
   font-weight: 800;
+}
+.rotate-icon {
+  font-size: 56px;
+  line-height: 1;
+  color: var(--c-lavender-deep);
 }
 :deep(.float-text) {
   position: absolute;
@@ -1001,13 +1159,17 @@ onUnmounted(() => {
 }
 :deep(.float-info) {
   font-family: var(--font-ui);
-  font-size: 32px;
+  font-size: max(32px, var(--min-font));
   background: rgba(127, 120, 194, 0.9);
   border-radius: 999px;
 }
-@keyframes breathe {
+/* 可以結束回合：外框光暈脈動，不縮放 */
+@keyframes glow {
   50% {
-    transform: scale(1.05);
+    box-shadow:
+      0 5px 0 #d9c17a,
+      0 0 0 6px rgba(246, 227, 161, 0.7),
+      var(--shadow);
   }
 }
 </style>

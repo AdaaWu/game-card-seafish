@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyAction, createRng, startGame, type CardDb, type GameState } from '@/engine'
 import { chooseAction } from '@/ai'
 import { cardDb, decks, tokens } from '@/content'
-import { reduceView, snapshotView } from '@/render/battle/viewModel'
+import { displayHp, reduceView, roundsOf, snapshotView } from '@/render/battle/viewModel'
 
 const db: CardDb = { cards: Object.values(cardDb).filter((c) => !tokens.includes(c)), tokens }
 
@@ -68,5 +68,22 @@ describe('reduceView 逐一套用事件後與引擎最終狀態一致', () => {
     v = reduceView(v, { type: 'armor', playerId: 'p1', amount: 2 }, state.cards)
     v = reduceView(v, { type: 'damage', targetId: 'p1-hero', amount: 3, armorAbsorbed: 2 }, state.cards)
     expect(v.players.p1).toMatchObject({ hp: 27, armor: 0 })
+  })
+})
+
+describe('displayHp 英雄生命顯示下限為 0', () => {
+  it('正數照常顯示、歸零顯示 0、負數顯示 0', () => {
+    expect(displayHp(27)).toBe(27)
+    expect(displayHp(0)).toBe(0)
+    expect(displayHp(-4)).toBe(0)
+  })
+})
+
+describe('roundsOf 結算畫面回合數', () => {
+  it('雙方各行動一次算一回合', () => {
+    expect(roundsOf(1)).toBe(1)
+    expect(roundsOf(2)).toBe(1)
+    expect(roundsOf(3)).toBe(2)
+    expect(roundsOf(14)).toBe(7)
   })
 })

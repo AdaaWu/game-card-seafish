@@ -48,7 +48,9 @@ onUnmounted(() => audio.stopBgm())
     :player-deck="decks['starter-leaf'] ?? []"
     :enemy-deck="decks[opponent.deckId] ?? []"
     :enemy-name="opponent.name"
+    :enemy-portrait-id="opponent.portraitId"
     :enemy-hero-hp="FREE_HERO_HP"
+    :bgm="opponent.deckId === 'ai-boss' ? 'bgm_battle_boss' : 'bgm_battle_normal'"
     :seed="seed"
     @finished="finished"
   />

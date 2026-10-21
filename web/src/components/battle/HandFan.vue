@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// 我方手牌扇形：圓心在畫面底部中心外 1200px，間隔 6°，總張角上限 50°
+// 我方手牌：桌機為扇形；手機預設收合成一排只露上緣，點手牌區展開
 import { computed } from 'vue'
 import CardView from '@/components/CardView.vue'
 import type { Card } from '@/engine'
+import { handSpacing, type HandGeometry } from '@/render/battle/battleLayout'
 import type { ViewCard } from '@/render/battle/viewModel'
 
 const props = defineProps<{
@@ -13,33 +14,44 @@ const props = defineProps<{
   draggingId: string | null
   hoverId: string | null
   dimOthers: boolean
+  geo: HandGeometry
+  state: 'fan' | 'collapsed' | 'expanded'
 }>()
 defineEmits<{ down: [id: string, e: PointerEvent]; enter: [id: string]; leave: [id: string] }>()
 
-const RADIUS = 1200
-const CARD_W = 150
-const TOP = 900
+// CardView sm 的原始寬度
+const BASE_W = 150
 
 const layout = computed(() => {
+  const g = props.geo
   const n = props.cards.length
-  const step = n > 1 ? Math.min(6, 50 / (n - 1)) : 0
+  const collapsed = props.state === 'collapsed'
+  const half = props.state === 'expanded' ? g.expandedHalf : g.maxHalf
+  const top = props.state === 'expanded' ? g.expandedTop : g.top
+  const step = handSpacing(n, g.cardW, half)
   return props.cards.map((c, i) => {
-    const deg = (i - (n - 1) / 2) * step
-    const rad = (deg * Math.PI) / 180
-    const x = 960 + RADIUS * Math.sin(rad) - CARD_W / 2
-    const y = TOP + RADIUS * (1 - Math.cos(rad))
+    const dx = (i - (n - 1) / 2) * step
+    const x = g.cx + dx - g.cardW / 2
+    if (collapsed) {
+      const y = props.selectedId === c.instanceId ? g.liftedTop : g.collapsedTop
+      return { c, style: { transform: `translate(${x}px, ${y}px)`, zIndex: i + 1 } }
+    }
+    const deg = (Math.asin(dx / g.radius) * 180) / Math.PI
+    const y = top + g.radius - Math.sqrt(g.radius * g.radius - dx * dx)
     return { c, style: { transform: `translate(${x}px, ${y}px) rotate(${deg}deg)`, zIndex: i + 1 } }
   })
 })
+const slotStyle = computed(() => ({ width: `${props.geo.cardW}px`, height: `${props.geo.cardH}px` }))
+const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_W})` }))
 </script>
 
 <template>
-  <div class="hand">
+  <div class="hand" :class="state" data-testid="hand">
     <div
       v-for="{ c, style } in layout"
       :key="c.instanceId"
       class="slot"
-      :style="style"
+      :style="[style, slotStyle]"
       :data-hand="c.instanceId"
     >
       <div
@@ -56,7 +68,9 @@ const layout = computed(() => {
         @pointerleave="$emit('leave', c.instanceId)"
       >
         <div class="lift">
-          <CardView v-if="cardDb[c.cardId]" :card="cardDb[c.cardId]!" size="sm" />
+          <div class="card-scale" :style="innerStyle">
+            <CardView v-if="cardDb[c.cardId]" :card="cardDb[c.cardId]!" size="sm" />
+          </div>
           <span v-if="playable.has(c.instanceId)" class="ring" aria-hidden="true" />
         </div>
       </div>
@@ -71,15 +85,18 @@ const layout = computed(() => {
   pointer-events: none;
   z-index: 20;
 }
+.hand.expanded {
+  z-index: 34;
+}
 .slot {
   position: absolute;
   left: 0;
   top: 0;
-  width: 150px;
   transform-origin: 50% 100%;
   transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 .hand-inner {
+  height: 100%;
   pointer-events: auto;
   cursor: pointer;
   border-radius: 14px;
@@ -88,29 +105,38 @@ const layout = computed(() => {
 }
 .lift {
   position: relative;
+  height: 100%;
   border-radius: 14px;
   transition:
     transform 0.12s ease-out,
     filter 0.12s;
+}
+.card-scale {
+  width: 150px;
+  transform-origin: 0 0;
 }
 .playable .lift {
   filter: drop-shadow(0 0 8px #f6e3a1) drop-shadow(0 0 4px #f6e3a1);
 }
 .ring {
   position: absolute;
-  left: -4px;
-  top: -4px;
-  width: 38px;
-  height: 38px;
+  left: -2%;
+  top: -2%;
+  width: 26%;
+  aspect-ratio: 1;
   border-radius: 50%;
   border: 3px solid #fff8d6;
   box-shadow: 0 0 6px #f6e3a1;
 }
-.hovered .lift {
+.fan .hovered .lift {
   transform: translateY(-40px) scale(1.15);
 }
-.selected .lift {
+.fan .selected .lift,
+.expanded .selected .lift {
   transform: translateY(-70px) scale(1.15);
+  filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 6px #f6e3a1);
+}
+.collapsed .selected .lift {
   filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 6px #f6e3a1);
 }
 .dim .lift {

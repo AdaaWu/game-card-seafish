@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// 勝負畫面：勝利標題落下＋泡泡花瓣，1.5 秒後顯示繼續
+// 勝負畫面：勝利標題落下＋泡泡花瓣；失敗提供重新挑戰與回地圖
 import gsap from 'gsap'
 import { onMounted, onUnmounted, ref } from 'vue'
 
-const props = defineProps<{ result: 'win' | 'lose' | 'draw'; speed: number }>()
-defineEmits<{ continue: [] }>()
+const props = defineProps<{ result: 'win' | 'lose' | 'draw'; speed: number; rounds: number }>()
+defineEmits<{ continue: []; retry: [] }>()
 
 const title = ref<HTMLElement | null>(null)
 const showButton = ref(false)
@@ -36,8 +36,15 @@ onUnmounted(() => clearTimeout(timer))
       />
     </div>
     <h2 ref="title">{{ result === 'win' ? '勝利！' : result === 'lose' ? '再試一次' : '平手' }}</h2>
-    <p v-if="result === 'lose'" class="sub">海流有點急，整理好牌組再出發吧</p>
-    <button v-if="showButton" class="btn continue" type="button" @click="$emit('continue')">繼續</button>
+    <p v-if="result === 'lose'" class="sub">海流有點急，深呼吸再出發吧</p>
+    <p class="rounds" data-testid="result-rounds">回合數 {{ rounds }}</p>
+    <div v-if="showButton" class="actions">
+      <template v-if="result === 'lose'">
+        <button class="btn" type="button" data-testid="retry" @click="$emit('retry')">重新挑戰</button>
+        <button class="btn ghost" type="button" data-testid="back-map" @click="$emit('continue')">回地圖</button>
+      </template>
+      <button v-else class="btn" type="button" @click="$emit('continue')">繼續</button>
+    </div>
   </div>
 </template>
 
@@ -66,14 +73,26 @@ h2 {
 .lose h2 {
   -webkit-text-stroke-color: var(--c-ink-soft);
 }
-.sub {
+.sub,
+.rounds {
   margin: 0;
-  font-size: 26px;
+  font-size: max(26px, var(--min-font, 0px));
   color: var(--c-ink);
 }
-.continue {
-  font-size: 28px;
-  padding: 16px 56px;
+.rounds {
+  padding: 6px 24px;
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.9);
+  font-weight: 800;
+}
+.actions {
+  display: flex;
+  gap: 24px;
+}
+.actions .btn {
+  font-size: max(28px, var(--min-font, 0px));
+  min-height: var(--btn-h, 64px);
+  padding: 0 56px;
 }
 .confetti span {
   position: absolute;

@@ -171,3 +171,13 @@ export function reduceView(view: BattleView, event: GameEvent, cards: Record<str
   }
   return v
 }
+
+// 英雄生命顯示值，最低為 0
+export function displayHp(hp: number): number {
+  return Math.max(0, hp)
+}
+
+// 引擎回合計數換成雙方各行動一次的回合數
+export function roundsOf(turn: number): number {
+  return Math.ceil(turn / 2)
+}

@@ -4,7 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BattleScreen from '@/components/battle/BattleScreen.vue'
 import OpponentPicker from '@/components/battle/OpponentPicker.vue'
-import { FREE_HERO_HP, type FreeOpponent } from '@/components/battle/opponents'
+import { FREE_HERO_HP, storyPortraitId, type FreeOpponent } from '@/components/battle/opponents'
 import { decks } from '@/content'
 import { audio } from '@/fx/audio'
 import { PLAYER_DECK_ID, useProgressStore } from '@/stores/progress'
@@ -56,7 +56,9 @@ function freeFinished() {
     :player-deck="decks[storyBattle.playerDeckId] ?? decks[PLAYER_DECK_ID] ?? []"
     :enemy-deck="decks[storyBattle.enemyDeckId] ?? []"
     :enemy-name="storyBattle.enemy.name"
+    :enemy-portrait-id="storyPortraitId(storyBattle.enemy.name)"
     :enemy-hero-hp="storyBattle.enemyHeroHp"
+    :bgm="storyBattle.isChapterFinal ? 'bgm_battle_boss' : 'bgm_battle_normal'"
     @finished="storyFinished"
   />
   <template v-else-if="freeMode">
@@ -65,7 +67,9 @@ function freeFinished() {
       :player-deck="decks[PLAYER_DECK_ID] ?? []"
       :enemy-deck="decks[freeOpponent.deckId] ?? []"
       :enemy-name="freeOpponent.name"
+      :enemy-portrait-id="freeOpponent.portraitId"
       :enemy-hero-hp="FREE_HERO_HP"
+      :bgm="freeOpponent.deckId === 'ai-boss' ? 'bgm_battle_boss' : 'bgm_battle_normal'"
       @finished="freeFinished"
     />
     <main v-else class="page">
