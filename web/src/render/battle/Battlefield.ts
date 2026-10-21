@@ -7,6 +7,7 @@ import type { ViewMinion } from './viewModel'
 import { MinionTextureCache } from './minionTexture'
 import { assetUrls } from '@/content/assetUrls'
 import { DESIGN_H, DESIGN_W, LANE_W, MINION_H as MINION_LOGICAL_H, ROW_OFFSET } from './battleLayout'
+import { insertPreview } from './insertPreview'
 
 const FOV = 30
 const CAM_Z = 30
@@ -21,6 +22,9 @@ const SPACING = px(168)
 const MINION_W = px(140)
 const MINION_H = px(MINION_LOGICAL_H)
 const BURST_POOL = 24
+const MAX_BOARD = 6
+// 預留卡位讓位動畫秒數
+const MAKE_ROOM_S = 0.18
 const BUBBLE_COUNT = 30
 const SHAKE_PX: Record<ShakeLevel, [number, number]> = { none: [0, 0], light: [4, 120], medium: [8, 200], heavy: [14, 320] }
 
@@ -92,6 +96,28 @@ function iceTexture(): THREE.CanvasTexture {
     ctx.beginPath()
     ctx.moveTo(-14, 0)
     ctx.lineTo(14, 0)
+    ctx.stroke()
+  }
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
+// 預留卡位：圓角卡形，fill 為奶白底、edge 為白色虛線外框（由材質上色）
+function slotTexture(kind: 'fill' | 'edge'): THREE.CanvasTexture {
+  const c = document.createElement('canvas')
+  c.width = 280
+  c.height = 350
+  const ctx = c.getContext('2d')!
+  ctx.beginPath()
+  ctx.roundRect(8, 8, 264, 334, 30)
+  if (kind === 'fill') {
+    ctx.fillStyle = '#fffaf0'
+    ctx.fill()
+  } else {
+    ctx.setLineDash([22, 14])
+    ctx.lineWidth = 8
+    ctx.strokeStyle = '#ffffff'
     ctx.stroke()
   }
   const t = new THREE.CanvasTexture(c)
@@ -200,7 +226,9 @@ export class Battlefield {
   private readonly burstMat: THREE.SpriteMaterial
   private readonly burst: THREE.Sprite[] = []
   private burstCursor = 0
-  private readonly seam: THREE.Mesh
+  private readonly slot = new THREE.Group()
+  private readonly slotEdgeMat: THREE.MeshBasicMaterial
+  private previewIndex: number | null = null
   private readonly ripple: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>
   private readonly bubbles: THREE.Points
   private readonly bubbleSpeed = new Float32Array(BUBBLE_COUNT)
@@ -297,12 +325,14 @@ export class Battlefield {
     }
     this.disposables.push(laneTex, laneGeo, laneMat)
 
-    const seamGeo = new THREE.PlaneGeometry(px(8), MINION_H)
-    const seamMat = new THREE.MeshBasicMaterial({ color: 0xf6e3a1, transparent: true, opacity: 0.95, depthWrite: false })
-    this.seam = new THREE.Mesh(seamGeo, seamMat)
-    this.seam.visible = false
-    this.scene.add(this.seam)
-    this.disposables.push(seamGeo, seamMat)
+    const slotFill = slotTexture('fill')
+    const slotEdge = slotTexture('edge')
+    const slotFillMat = new THREE.MeshBasicMaterial({ map: slotFill, transparent: true, opacity: 0.4, depthWrite: false })
+    this.slotEdgeMat = new THREE.MeshBasicMaterial({ map: slotEdge, transparent: true, opacity: 0.5, depthWrite: false })
+    this.slot.add(new THREE.Mesh(this.cardGeo, slotFillMat), new THREE.Mesh(this.cardGeo, this.slotEdgeMat))
+    this.slot.visible = false
+    this.scene.add(this.slot)
+    this.disposables.push(slotFill, slotEdge, slotFillMat, this.slotEdgeMat)
 
     const rippleGeo = new THREE.RingGeometry(0.8, 1, 48)
     const rippleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })
@@ -412,7 +442,8 @@ export class Battlefield {
     this.order.p1 = []
     this.order.p2 = []
     this.selectedId = null
-    this.seam.visible = false
+    this.slot.visible = false
+    this.previewIndex = null
     gsap.killTweensOf(this.camera.position)
     this.camera.position.copy(this.camBase)
   }
@@ -422,6 +453,8 @@ export class Battlefield {
     const dt = Math.min(this.timer.getDelta(), 0.1)
     const t = this.timer.getElapsed()
     this.highlightMat.opacity = 0.6 + 0.35 * Math.sin(t * ((2 * Math.PI) / 1.2))
+    // 預留卡位只做外框透明度脈動
+    this.slotEdgeMat.opacity = 0.42 + 0.12 * Math.sin(t * ((2 * Math.PI) / 1.6))
     if (!this.reducedMotion) this.readyMat.opacity = 0.8 + 0.2 * Math.sin(t * ((2 * Math.PI) / 1.6))
     const pos = this.bubbles.geometry.getAttribute('position') as THREE.BufferAttribute
     const arr = pos.array as Float32Array
@@ -486,15 +519,25 @@ export class Battlefield {
     return Math.abs(px(this.boardCy - y) - ROW_Y[pid]) < MINION_H * 0.75
   }
 
-  showSeam(index: number | null): void {
-    if (index === null) {
-      this.seam.visible = false
+  // 我方插入位置顯示預留卡位，左右生物讓位；null 或場地已滿時收起並滑回原位
+  showInsertPreview(index: number | null, color?: string): void {
+    const ids = this.order.p1
+    const preview = index === null ? null : insertPreview(ids.length, index, SPACING, MAX_BOARD)
+    if (!preview) {
+      if (this.previewIndex !== null) this.layout('p1', MAKE_ROOM_S)
+      this.previewIndex = null
+      this.slot.visible = false
       return
     }
-    const n = this.order.p1.length
-    const x = n === 0 ? 0 : index === 0 ? this.homeX(0, n) - SPACING / 2 : this.homeX(index - 1, n) + SPACING / 2
-    this.seam.position.set(x, ROW_Y.p1, 0.2)
-    this.seam.visible = true
+    if (color) this.slotEdgeMat.color.set(color)
+    if (this.previewIndex === index && this.slot.visible) return
+    this.previewIndex = index
+    ids.forEach((id, i) => {
+      const m = this.minions.get(id)
+      if (m) gsap.to(m.root.position, { x: preview.minionX[i], duration: MAKE_ROOM_S, ease: 'power2.out', overwrite: 'auto' })
+    })
+    this.slot.position.set(preview.slotX, ROW_Y.p1, -0.05)
+    this.slot.visible = true
   }
 
   // ---------- 狀態外觀 ----------

@@ -6,8 +6,8 @@ import { useRouter } from 'vue-router'
 import CardView from '@/components/CardView.vue'
 import { chooseAction, MAX_ACTIONS_PER_TURN } from '@/ai'
 import { characterByName, cardDb, tokens } from '@/content'
-import { cardArtUrl } from '@/content/cardStyle'
-import { createRng, hasNoActions, type Action, type Card, type GameEvent, type PlayerId } from '@/engine'
+import { cardArtUrl, FACTION_STYLE } from '@/content/cardStyle'
+import { createRng, hasNoActions, MAX_BOARD, type Action, type Card, type GameEvent, type PlayerId } from '@/engine'
 import { Animator } from '@/fx/animator'
 import { TIMING } from '@/fx/animationPlan'
 import { audio, type BgmName } from '@/fx/audio'
@@ -169,6 +169,14 @@ const arrow = computed(() => {
   return { from, to, kind: m.source.type === 'attack' ? ('attack' as const) : ('spell' as const), snapped, invalid: over !== null && !snapped }
 })
 
+// 拿著生物卡移到場上但場地已滿時，游標旁提示
+const boardFullTip = computed(() => {
+  const m = mode.value
+  const id = drag.value?.active ? drag.value.id : m.kind === 'card' ? m.id : null
+  if (!id || cardOfHand(id)?.type !== 'creature' || pointer.y >= playLine.value) return false
+  return (view.value?.players.p1.board.length ?? 0) >= MAX_BOARD
+})
+
 const dragGhost = computed(() => {
   const d = drag.value
   if (!d?.active || !view.value) return null
@@ -271,7 +279,7 @@ function cancelMode(): void {
   mode.value = { kind: 'idle' }
   attackDrag.value = null
   field?.setSelected(null)
-  field?.showSeam(null)
+  field?.showInsertPreview(null)
 }
 
 function planContext(aiTurn: boolean) {
@@ -313,7 +321,7 @@ async function commit(action: Action): Promise<void> {
   mode.value = { kind: 'idle' }
   attackDrag.value = null
   field?.setSelected(null)
-  field?.showSeam(null)
+  field?.showInsertPreview(null)
   detail.value = null
   const r = store.act(action)
   if (!r.ok) {
@@ -496,8 +504,8 @@ function onMove(e: PointerEvent): void {
   const m = mode.value
   const draggingCard = drag.value?.active ? drag.value.id : m.kind === 'card' ? m.id : null
   if (draggingCard && cardOfHand(draggingCard)?.type === 'creature' && p.y < playLine.value && playable.value.has(draggingCard)) {
-    field?.showSeam(field.insertIndexAt(p.x))
-  } else field?.showSeam(null)
+    field?.showInsertPreview(field.insertIndexAt(p.x), FACTION_STYLE[cardOfHand(draggingCard)!.faction].main)
+  } else field?.showInsertPreview(null)
   if (!drag.value?.active) updateMinionHover(p.x, p.y)
 }
 
@@ -506,7 +514,7 @@ function onUp(e: PointerEvent): void {
   const d = drag.value
   if (d) {
     drag.value = null
-    field?.showSeam(null)
+    field?.showInsertPreview(null)
     if (!d.active) onHandClick(d.id)
     else if (p.y < playLine.value) onHandRelease(d.id)
     else audio.play('sfx_card_return')
@@ -526,7 +534,7 @@ function onCancel(): void {
   const d = drag.value
   if (d) {
     drag.value = null
-    field?.showSeam(null)
+    field?.showInsertPreview(null)
     if (d.active) audio.play('sfx_card_return')
     return
   }
@@ -885,6 +893,9 @@ const uiStyle = computed(() => {
           <span>{{ boosted ? '加速中 ▶▶' : '點擊畫面可加速 ▶▶' }}</span>
         </div>
 
+        <div v-if="boardFullTip" class="board-full-tip" :style="{ left: `${pointer.x + 36}px`, top: `${pointer.y - 70}px` }" data-testid="board-full-tip">
+          場地已滿
+        </div>
         <div v-if="dragGhost" class="drag-ghost" :class="{ small: dragGhost.small }" :style="{ left: `${pointer.x}px`, top: `${pointer.y}px` }">
           <CardView :card="dragGhost.card" size="sm" variant="hand" />
         </div>
@@ -1108,6 +1119,18 @@ const uiStyle = computed(() => {
 }
 .speed-tip.on span {
   background: var(--c-lavender-deep);
+}
+.board-full-tip {
+  position: absolute;
+  z-index: 37;
+  pointer-events: none;
+  padding: 0.3em 0.9em;
+  border-radius: 999px;
+  background: rgba(46, 39, 66, 0.88);
+  color: #fff;
+  font-size: max(26px, calc(var(--min-font) * 1.2));
+  font-weight: 800;
+  white-space: nowrap;
 }
 .drag-ghost {
   position: absolute;
