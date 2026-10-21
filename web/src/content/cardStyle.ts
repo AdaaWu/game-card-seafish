@@ -29,6 +29,16 @@ export const LAYOUT = {
 // 切片 1x 以 512 寬貼圖為準：設計稿 1 單位 = 1.024 px
 export const SLICE_PX = 1.024
 
+// 傳說花冠切片尺寸（設計稿單位）
+export const CROWN = { w: 204 / SLICE_PX, h: 60 / SLICE_PX }
+
+// 關鍵字列位置：傳說卡移到花冠下方
+export function keywordRow(rarity: Rarity): { cx: number; cy: number; d: number; gap: number } {
+  const k = LAYOUT.keyword
+  if (rarity !== 'legendary') return { ...k }
+  return { ...k, cy: Math.ceil(CROWN.h + 4 + k.d / 2) }
+}
+
 // 九宮格不拉伸區（1x px）
 export const SLICE_INSET = {
   scrim: { t: 0, r: 28, b: 0, l: 28 },

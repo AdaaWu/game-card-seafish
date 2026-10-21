@@ -12,6 +12,7 @@ import {
   cardFaceLayout,
   cardKeywords,
   cardTypeLine,
+  keywordRow,
   nameFontSize,
   splitKeywordText,
   uiImageUrl,
@@ -363,7 +364,7 @@ export function drawCardFace(
 
   // ⑦ 派系徽記與關鍵字圖示
   icon(parts.faction, L.faction)
-  const K = LAYOUT.keyword
+  const K = keywordRow(card.rarity)
   cardKeywords(card).forEach((k, i) => {
     const cx = K.cx + i * K.gap
     if (parts.keywordRing) ctx.drawImage(parts.keywordRing, cx - K.d / 2, K.cy - K.d / 2, K.d, K.d)

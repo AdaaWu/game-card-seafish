@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CARD_H, CARD_W, LAYOUT, artPlacement, cardFaceLayout, estimateTextLines } from '@/content/cardStyle'
+import { CARD_H, CARD_W, CROWN, LAYOUT, artPlacement, cardFaceLayout, estimateTextLines, keywordRow } from '@/content/cardStyle'
 import { getCard } from '@/content'
 
 const LINES = [0, 1, 2, 3, 4]
@@ -73,5 +73,16 @@ describe('插畫裁切規則', () => {
     const p = artPlacement({ x: 0, y: 300, w: 1024, h: 400 }, 1024, 1024, art)
     expect(p.w).toBeCloseTo(464 * 1.08)
     expect(p.y + 300 * (p.w / 1024)).toBeCloseTo(18 + 504 * 0.1)
+  })
+})
+
+describe('傳說花冠與關鍵字列', () => {
+  it('傳說卡的關鍵字列整排在花冠下緣之下', () => {
+    const k = keywordRow('legendary')
+    expect(k.cy - k.d / 2).toBeGreaterThanOrEqual(CROWN.h)
+  })
+
+  it('非傳說卡的關鍵字列維持原位置', () => {
+    for (const r of ['common', 'rare', 'epic'] as const) expect(keywordRow(r).cy).toBe(LAYOUT.keyword.cy)
   })
 })

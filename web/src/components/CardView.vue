@@ -8,6 +8,7 @@ import {
   LAYOUT,
   RARITY_STYLE,
   SHAPES,
+  CROWN,
   SLICE_INSET,
   SLICE_PX,
   artPlacement,
@@ -20,6 +21,7 @@ import {
   estimateTextLines,
   hasEffectText,
   healthTone,
+  keywordRow,
   nameFontSize,
   splitKeywordText,
   textFontSize,
@@ -116,7 +118,7 @@ const gemFallback = computed(() => {
   const pts = gemPoints(props.card.rarity, d / 2, d / 2, d / 2 - 2)
   return pts?.map((p) => p.join(',')).join(' ') ?? null
 })
-const crownStyle = { left: u((500 - 204 / SLICE_PX) / 2), top: '0', width: u(204 / SLICE_PX), height: u(60 / SLICE_PX) }
+const crownStyle = { left: u((500 - CROWN.w) / 2), top: '0', width: u(CROWN.w), height: u(CROWN.h) }
 
 const artUrl = computed(() => cardArtUrl(props.card.id))
 const artFailed = ref(false)
@@ -166,7 +168,10 @@ const geo = computed(() => {
 })
 const handKeywordsStyle = { right: u(HAND.kw.right), top: u(HAND.kw.top), gap: u(HAND.kw.gap) }
 const K = LAYOUT.keyword
-const fullKeywordsStyle = { left: u(K.cx - K.d / 2), top: u(K.cy - K.d / 2), gap: u(K.gap - K.d) }
+const fullKeywordsStyle = computed(() => {
+  const k = keywordRow(props.card.rarity)
+  return { left: u(k.cx - k.d / 2), top: u(k.cy - k.d / 2), gap: u(k.gap - k.d) }
+})
 const kwSize = computed(() => u(isHand.value ? HAND.kw.d : K.d))
 const kwRing = computed(() => (isHand.value || !parts.value.hi.keywordRing ? {} : { backgroundImage: `url("${parts.value.hi.keywordRing}")` }))
 
@@ -241,7 +246,7 @@ const ariaLabel = computed(() => {
         alt=""
         draggable="false"
       />
-      <svg v-else-if="!isHand && card.rarity === 'legendary'" class="crown crown-fallback" viewBox="0 0 500 80" :style="crownStyle" aria-hidden="true">
+      <svg v-else-if="!isHand && card.rarity === 'legendary'" class="crown crown-fallback" viewBox="148 8 204 64" :style="crownStyle" aria-hidden="true">
         <path :d="SHAPES.crown" />
       </svg>
 
