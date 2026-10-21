@@ -110,7 +110,7 @@ test('測試頁：出牌、結束回合、AI 回合，連續 3 回合無錯誤',
   expect(errors).toEqual([])
 })
 
-test('測試頁：完整打完一場並按繼續', async ({ page }) => {
+test('測試頁：完整打完一場並依戰果離開', async ({ page }) => {
   test.setTimeout(1_500_000)
   const errors = collectErrors(page)
   await page.setViewportSize({ width: 1280, height: 720 })
@@ -135,10 +135,15 @@ test('測試頁：完整打完一場並按繼續', async ({ page }) => {
       await clickLogical(page, 300, 520)
     }
   }
-  const cont = page.getByRole('button', { name: '繼續' })
-  await expect(cont).toBeVisible({ timeout: 30_000 })
+  // 勝利與平手按「繼續」，戰敗按「回選單」
+  const result = page.locator('.result')
+  await expect(result).toBeVisible({ timeout: 30_000 })
+  const lost = await result.evaluate((el) => el.classList.contains('lose'))
+  const exit = lost ? page.getByTestId('back-map') : page.getByRole('button', { name: '繼續' })
+  await expect(exit).toBeVisible({ timeout: 30_000 })
+  if (lost) await expect(exit).toHaveText('回選單')
   await page.screenshot({ path: `${SHOTS}/05-result.png` })
-  await cont.click()
+  await exit.click()
   await expect(page.getByTestId('last-result')).toBeVisible()
   expect(errors).toEqual([])
 })

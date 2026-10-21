@@ -52,6 +52,7 @@ onUnmounted(() => audio.stopBgm())
     :enemy-hero-hp="FREE_HERO_HP"
     :bgm="opponent.deckId === 'ai-boss' ? 'bgm_battle_boss' : 'bgm_battle_normal'"
     :seed="seed"
+    exit-label="回選單"
     @finished="finished"
   />
 </template>

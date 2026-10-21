@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// 勝負畫面：勝利標題落下＋泡泡花瓣；失敗提供重新挑戰與回地圖
+// 勝負畫面：勝利標題落下＋泡泡花瓣；失敗提供重新挑戰與離開
 import gsap from 'gsap'
 import { onMounted, onUnmounted, ref } from 'vue'
 
-const props = defineProps<{ result: 'win' | 'lose' | 'draw'; speed: number; rounds: number }>()
+const props = defineProps<{ result: 'win' | 'lose' | 'draw'; speed: number; rounds: number; exitLabel: string }>()
 defineEmits<{ continue: []; retry: [] }>()
 
 const title = ref<HTMLElement | null>(null)
@@ -41,7 +41,7 @@ onUnmounted(() => clearTimeout(timer))
     <div v-if="showButton" class="actions">
       <template v-if="result === 'lose'">
         <button class="btn" type="button" data-testid="retry" @click="$emit('retry')">重新挑戰</button>
-        <button class="btn ghost" type="button" data-testid="back-map" @click="$emit('continue')">回地圖</button>
+        <button class="btn ghost" type="button" data-testid="back-map" @click="$emit('continue')">{{ exitLabel }}</button>
       </template>
       <button v-else class="btn" type="button" @click="$emit('continue')">繼續</button>
     </div>

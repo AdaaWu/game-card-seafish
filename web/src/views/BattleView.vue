@@ -70,6 +70,7 @@ function freeFinished() {
       :enemy-portrait-id="freeOpponent.portraitId"
       :enemy-hero-hp="FREE_HERO_HP"
       :bgm="freeOpponent.deckId === 'ai-boss' ? 'bgm_battle_boss' : 'bgm_battle_normal'"
+      exit-label="回選單"
       @finished="freeFinished"
     />
     <main v-else class="page">

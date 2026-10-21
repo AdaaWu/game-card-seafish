@@ -38,8 +38,10 @@ const props = withDefaults(
     seed?: number
     // 重新挑戰時恢復的對戰音樂
     bgm?: BgmName
+    // 戰敗時離開按鈕的文字
+    exitLabel?: string
   }>(),
-  { seed: undefined, enemyPortraitId: undefined, bgm: 'bgm_battle_normal' },
+  { seed: undefined, enemyPortraitId: undefined, bgm: 'bgm_battle_normal', exitLabel: '回地圖' },
 )
 const emit = defineEmits<{ finished: [result: Outcome] }>()
 
@@ -909,6 +911,7 @@ const uiStyle = computed(() => {
           :result="outcome"
           :speed="speed"
           :rounds="rounds"
+          :exit-label="exitLabel"
           @continue="onContinue"
           @retry="onRetry"
           @pointerdown.stop
