@@ -23,7 +23,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   masterVolume: 80,
   musicVolume: 60,
   sfxVolume: 80,
-  speed: 1,
+  speed: 2,
   skipTutorial: false,
   seenOpening: false,
 }
@@ -73,7 +73,7 @@ export class SettingsRepository {
       masterVolume: clampVolume(d.masterVolume, DEFAULT_SETTINGS.masterVolume),
       musicVolume: clampVolume(d.musicVolume, DEFAULT_SETTINGS.musicVolume),
       sfxVolume: clampVolume(d.sfxVolume, DEFAULT_SETTINGS.sfxVolume),
-      speed: d.speed === 2 ? 2 : 1,
+      speed: d.speed === 1 || d.speed === 2 ? d.speed : DEFAULT_SETTINGS.speed,
       skipTutorial: d.skipTutorial === true,
       seenOpening: d.seenOpening === true,
     }

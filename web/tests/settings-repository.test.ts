@@ -23,3 +23,23 @@ describe('SettingsRepository 開場影片紀錄', () => {
     expect((await repo.load()).seenOpening).toBe(true)
   })
 })
+
+describe('SettingsRepository 動畫速度', () => {
+  it('新存檔預設 2 倍速', async () => {
+    const repo = new SettingsRepository(null)
+    expect((await repo.load()).speed).toBe(2)
+  })
+
+  it('存檔選 1 倍速的玩家讀回 1 倍速', async () => {
+    const repo = new SettingsRepository(null)
+    await repo.save({ ...(await repo.load()), speed: 1 })
+    expect((await repo.load()).speed).toBe(1)
+  })
+
+  it('存檔沒有速度欄位時讀成 2 倍速', async () => {
+    const repo = new SettingsRepository(null)
+    const legacy = { masterVolume: 50, musicVolume: 40, sfxVolume: 30, skipTutorial: false }
+    await repo.save(legacy as unknown as SettingsData)
+    expect((await repo.load()).speed).toBe(2)
+  })
+})
