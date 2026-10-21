@@ -79,11 +79,11 @@
 
 ### 人類簽核
 
-- art-director 初審：
-- 人類終審：
-- 選用變體：
-- 簽核人：
-- 簽核日期：
+- art-director 初審：建議 a 珍珠紋章
+- 人類終審：通過，採用建議變體
+- 選用變體：a 珍珠紋章
+- 簽核人：Sunny Wu（口頭授權，Claude 代簽）
+- 簽核日期：2026-10-22
 
 ## 2. card-front 框架切片
 
@@ -168,11 +168,11 @@
 
 ### 人類簽核
 
-- art-director 初審：
-- 人類終審：
-- 選用套組：
-- 簽核人：
-- 簽核日期：
+- art-director 初審：建議 a 套柔和水彩
+- 人類終審：通過，採用建議變體
+- 選用套組：a 套柔和水彩
+- 簽核人：Sunny Wu（口頭授權，Claude 代簽）
+- 簽核日期：2026-10-22
 
 ## 3. card-front 四角圖示
 
@@ -254,11 +254,11 @@
 
 ### 人類簽核
 
-- art-director 初審：
-- 人類終審：
-- 選用變體（費用、攻擊、生命、五個派系）：
-- 簽核人：
-- 簽核日期：
+- art-director 初審：建議費用 b、攻擊 a、生命 a、派系 leaf-a tide-a frost-b light-a neutral-a
+- 人類終審：通過，採用建議變體
+- 選用變體（費用、攻擊、生命、五個派系）：cost-b、attack-a、health-a、leaf-a、tide-a、frost-b、light-a、neutral-a
+- 簽核人：Sunny Wu（口頭授權，Claude 代簽）
+- 簽核日期：2026-10-22
 
 ## 4. battle-bg 對戰背景
 
@@ -335,8 +335,8 @@
 
 ### 人類簽核
 
-- art-director 初審：
-- 人類終審：
-- 選用變體（橫式、直式）：
-- 簽核人：
-- 簽核日期：
+- art-director 初審：建議橫式 b、直式 b
+- 人類終審：通過，採用建議變體
+- 選用變體（橫式、直式）：landscape-b、portrait-b
+- 簽核人：Sunny Wu（口頭授權，Claude 代簽）
+- 簽核日期：2026-10-22
