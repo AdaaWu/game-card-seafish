@@ -984,9 +984,7 @@ const uiStyle = computed(() => {
   margin-left: -24px;
   box-sizing: border-box;
   border-radius: 9px;
-  background:
-    radial-gradient(circle at 50% 50%, #fff 0 8px, transparent 9px),
-    linear-gradient(135deg, #b9a6db, #8d74c2);
+  background: #8d74c2 url('@assets/ui/card-back.webp') center / cover;
   border: 3px solid #fffdf7;
   box-shadow: 0 3px 8px rgba(62, 53, 80, 0.2);
 }
@@ -1005,7 +1003,7 @@ const uiStyle = computed(() => {
   height: 60px;
   box-sizing: border-box;
   border-radius: 8px;
-  background: linear-gradient(135deg, #b9a6db, #8d74c2);
+  background: #8d74c2 url('@assets/ui/card-back.webp') center / cover;
   border: 3px solid #fffdf7;
   box-shadow:
     3px 3px 0 #fffdf7,

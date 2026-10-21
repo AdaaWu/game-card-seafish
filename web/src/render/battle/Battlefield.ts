@@ -5,6 +5,7 @@ import type { Card, PlayerId } from '@/engine'
 import type { ShakeLevel } from '@/fx/animationPlan'
 import type { ViewMinion } from './viewModel'
 import { MinionTextureCache } from './minionTexture'
+import { assetUrls } from '@/content/assetUrls'
 import { DESIGN_H, DESIGN_W, LANE_W, ROW_OFFSET } from './battleLayout'
 
 const FOV = 30
@@ -156,6 +157,10 @@ export class Battlefield {
   private bubbleHalf = { x: 15, y: 9 }
 
   private readonly container: HTMLElement
+  // 對戰背景圖：載入前顯示漸層，依舞台長寬比切換橫式與直式
+  private readonly bgFallback: THREE.CanvasTexture
+  private readonly bgImages: Partial<Record<'landscape' | 'portrait', THREE.Texture>> = {}
+  private disposed = false
 
   constructor(container: HTMLElement, cards: Record<string, Card>, images: Map<string, HTMLImageElement | null>) {
     this.container = container
@@ -174,9 +179,10 @@ export class Battlefield {
     this.rig.add(this.camera)
     this.scene.add(this.rig)
 
-    const bg = backgroundTexture()
-    this.scene.background = bg
-    this.disposables.push(bg)
+    this.bgFallback = backgroundTexture()
+    this.scene.background = this.bgFallback
+    this.disposables.push(this.bgFallback)
+    this.loadBackgrounds()
 
     const iceTex = iceTexture()
     this.iceMat = new THREE.MeshBasicMaterial({ map: iceTex, transparent: true, depthWrite: false })
@@ -279,6 +285,44 @@ export class Battlefield {
     this.renderer.setSize(w, h, false)
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
+    this.fitBackground()
+  }
+
+  private loadBackgrounds(): void {
+    const loader = new THREE.TextureLoader()
+    for (const kind of ['landscape', 'portrait'] as const) {
+      const url = assetUrls[`backgrounds/bg-battle-${kind}.webp`]
+      if (!url) continue
+      loader.load(url, (tex) => {
+        if (this.disposed) {
+          tex.dispose()
+          return
+        }
+        tex.colorSpace = THREE.SRGBColorSpace
+        this.bgImages[kind] = tex
+        this.disposables.push(tex)
+        this.fitBackground()
+      })
+    }
+  }
+
+  // cover 裁切：圖比舞台寬就裁左右，比舞台高就裁上下
+  private fitBackground(): void {
+    const w = Math.max(1, this.container.clientWidth)
+    const h = Math.max(1, this.container.clientHeight)
+    const stage = w / h
+    const tex = this.bgImages[stage >= 1 ? 'landscape' : 'portrait']
+    if (!tex) return
+    const img = tex.image as { width: number; height: number }
+    const ratio = img.width / img.height
+    if (ratio > stage) {
+      tex.repeat.set(stage / ratio, 1)
+      tex.offset.set((1 - stage / ratio) / 2, 0)
+    } else {
+      tex.repeat.set(1, ratio / stage)
+      tex.offset.set(0, (1 - ratio / stage) / 2)
+    }
+    this.scene.background = tex
   }
 
   // 依版面的邏輯尺寸調整鏡頭距離與高度，讓分隔線落在 boardCy
@@ -727,6 +771,7 @@ export class Battlefield {
   }
 
   dispose(): void {
+    this.disposed = true
     this.renderer.setAnimationLoop(null)
     this.timer.dispose()
     this.resizeObserver.disconnect()
