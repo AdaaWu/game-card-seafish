@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { assetUrls } from '@/content/assetUrls'
 
 describe('assetUrls', () => {
-  it('只收 cards、portraits、stickers 的 webp 與 video 的 mp4', () => {
+  it('只收 cards、portraits、stickers、ui、backgrounds 的 webp 與 video 的 mp4', () => {
     const keys = Object.keys(assetUrls)
     expect(keys.length).toBeGreaterThan(0)
-    for (const k of keys) expect(k).toMatch(/^(?:(?:cards|portraits|stickers)\/[^/]+\.webp|video\/[^/]+\.mp4)$/)
+    for (const k of keys) expect(k).toMatch(/^(?:(?:cards|portraits|stickers|backgrounds)\/[^/]+\.webp|ui\/(?:[^/]+\/)?[^/]+\.webp|video\/[^/]+\.mp4)$/)
   })
 
   it('不收 _tests 與 _source', () => {

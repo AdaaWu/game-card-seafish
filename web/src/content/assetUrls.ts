@@ -1,6 +1,13 @@
-// 根目錄 assets/ 底下的卡圖、頭像、貼圖與影片 URL，key 為相對 assets/ 的路徑（如 cards/xxx.webp）
+// 根目錄 assets/ 底下的卡圖、頭像、貼圖、介面、背景與影片 URL，key 為相對 assets/ 的路徑（如 cards/xxx.webp）
 const modules = import.meta.glob<string>(
-  ['@assets/cards/*.webp', '@assets/portraits/*.webp', '@assets/stickers/*.webp', '@assets/video/*.mp4'],
+  [
+    '@assets/cards/*.webp',
+    '@assets/portraits/*.webp',
+    '@assets/stickers/*.webp',
+    '@assets/ui/**/*.webp',
+    '@assets/backgrounds/*.webp',
+    '@assets/video/*.mp4',
+  ],
   { eager: true, query: '?url', import: 'default' },
 )
 
