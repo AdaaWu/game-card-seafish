@@ -11,7 +11,7 @@ export interface FreeOpponent {
 export const FREE_OPPONENTS: FreeOpponent[] = [
   { deckId: 'ai-tide', name: '波波', label: '潮・波波', portraitId: 'bobo' },
   { deckId: 'ai-frost', name: '凍凍婆婆', label: '霜・凍凍婆婆', portraitId: 'dongdong' },
-  { deckId: 'ai-light', name: '閃閃', label: '光・閃閃', portraitId: 'jiujiu' },
+  { deckId: 'ai-light', name: '閃閃', label: '光・閃閃', portraitId: 'shanshan' },
   { deckId: 'ai-boss', name: '鮟部長', label: '首領・鮟部長', portraitId: 'anbuzhang' },
 ]
 
