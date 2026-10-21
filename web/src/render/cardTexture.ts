@@ -396,3 +396,13 @@ export async function createCardCanvas(card: Card, values: CardFaceValues = {}):
   drawCardFace(ctx, card, values, image, parts)
   return canvas
 }
+
+// 載入失敗的部件改為空，由卡面退回 CSS 底框與向量圖示
+export function withoutFailed<K extends string>(
+  urls: Record<K, string | undefined>,
+  failed: ReadonlySet<NoInfer<K>>,
+): Record<K, string | undefined> {
+  const out = { ...urls }
+  for (const k of failed) out[k] = undefined
+  return out
+}

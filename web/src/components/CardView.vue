@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // DOM 卡面：版面座標與 Canvas 卡面共用 cardStyle
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import type { Card } from '@/content/types'
 import {
   FACTION_STYLE,
@@ -14,6 +14,7 @@ import {
   cardArtUrl,
   cardFaceLayout,
   cardTypeLine,
+  gemPoints,
   cardKeywords,
   attackTone,
   estimateTextLines,
@@ -24,7 +25,7 @@ import {
   textFontSize,
   type Rect,
 } from '@/content/cardStyle'
-import { alphaBounds, cardPartUrls, loadImage } from '@/render/cardTexture'
+import { alphaBounds, cardPartUrls, loadImage, withoutFailed, type CardFaceParts } from '@/render/cardTexture'
 
 const props = withDefaults(
   defineProps<{
@@ -56,10 +57,27 @@ const keywords = computed(() => cardKeywords(props.card))
 const segments = computed(() => splitKeywordText(props.card.text))
 const layout = computed(() => cardFaceLayout(props.card.type, estimateTextLines(props.card.text)))
 
-// 切片與圖示：1x 加 2x srcset
+// 切片與圖示：1x 加 2x srcset；載入失敗的部件退回 CSS 底框與向量圖示
+type PartKey = keyof CardFaceParts
+const failedParts = reactive(new Set<PartKey>())
+const partUrls = computed(() => ({
+  lo: cardPartUrls(props.card.faction, props.card.rarity),
+  hi: cardPartUrls(props.card.faction, props.card.rarity, true),
+}))
+function probeParts() {
+  failedParts.clear()
+  const { lo, hi } = partUrls.value
+  for (const k of Object.keys(lo) as PartKey[]) {
+    for (const url of [lo[k], hi[k]]) {
+      if (url) void loadImage(url).then((img) => !img && failedParts.add(k))
+    }
+  }
+}
+onMounted(probeParts)
+watch(partUrls, probeParts)
 const parts = computed(() => {
-  const lo = cardPartUrls(props.card.faction, props.card.rarity)
-  const hi = cardPartUrls(props.card.faction, props.card.rarity, true)
+  const lo = withoutFailed(partUrls.value.lo, failedParts)
+  const hi = withoutFailed(partUrls.value.hi, failedParts)
   const pick = (k: keyof typeof lo) => ({ src: lo[k], srcset: lo[k] && hi[k] ? `${lo[k]} 1x, ${hi[k]} 2x` : undefined })
   return {
     frame: pick('frame'),
@@ -92,6 +110,11 @@ const scrimStyle = computed(() => ({
 const gemStyle = computed(() => {
   const d = 28 / SLICE_PX
   return box({ x: layout.value.gem.cx - d / 2, y: layout.value.gem.cy - d / 2, d })
+})
+const gemFallback = computed(() => {
+  const d = 28
+  const pts = gemPoints(props.card.rarity, d / 2, d / 2, d / 2 - 2)
+  return pts?.map((p) => p.join(',')).join(' ') ?? null
 })
 const crownStyle = { left: u((500 - 204 / SLICE_PX) / 2), top: '0', width: u(204 / SLICE_PX), height: u(60 / SLICE_PX) }
 
@@ -163,7 +186,7 @@ const ariaLabel = computed(() => {
   <div class="card-view" :style="{ width: `${WIDTH[size]}px` }" role="img" :aria-label="ariaLabel">
     <div
       class="face"
-      :class="[`f-${card.faction}`, `r-${card.rarity}`, card.type, { hand: isHand }]"
+      :class="[`f-${card.faction}`, `r-${card.rarity}`, card.type, { hand: isHand, 'no-frame': !parts.frame.src }]"
       :style="{
         '--main': faction.main,
         '--dark': faction.dark,
@@ -218,8 +241,11 @@ const ariaLabel = computed(() => {
         alt=""
         draggable="false"
       />
+      <svg v-else-if="!isHand && card.rarity === 'legendary'" class="crown crown-fallback" viewBox="0 0 500 80" :style="crownStyle" aria-hidden="true">
+        <path :d="SHAPES.crown" />
+      </svg>
 
-      <div class="ribbon" :class="{ hand: isHand }" :style="ribbonStyle">
+      <div class="ribbon" :class="{ hand: isHand, plain: isHand || !parts.hi.ribbon }" :style="ribbonStyle">
         <span v-if="isHand" class="name single" :style="{ fontSize: u(HAND.font.name) }">{{ card.name }}</span>
         <span v-else class="name" :style="{ fontSize: u(nameFontSize(card.name)) }">{{ card.name }}</span>
       </div>
@@ -233,8 +259,12 @@ const ariaLabel = computed(() => {
         :alt="rarity.label"
         draggable="false"
       />
+      <svg v-else-if="!isHand" class="gem" viewBox="0 0 28 28" :style="gemStyle" role="img" :aria-label="rarity.label">
+        <polygon v-if="gemFallback" :points="gemFallback" :fill="rarity.color" />
+        <circle v-else cx="14" cy="14" r="12" :fill="rarity.color" />
+      </svg>
 
-      <div v-if="!isHand" class="textbox" :style="textBox">
+      <div v-if="!isHand" class="textbox" :class="{ plain: !parts.hi.textbox }" :style="textBox">
         <p class="effect" :style="{ fontSize: u(textFontSize(card.text)) }">
           <template v-for="(s, i) in segments" :key="i">
             <strong v-if="s.bold">{{ s.text }}</strong><template v-else>{{ s.text }}</template>
@@ -247,6 +277,7 @@ const ariaLabel = computed(() => {
 
       <div class="badge cost" :style="geo.cost">
         <img v-if="parts.cost.src" class="icon-img" :src="parts.cost.src" :srcset="parts.cost.srcset" alt="" draggable="false" />
+        <svg v-else class="shape" viewBox="0 0 96 96" aria-hidden="true"><path :d="SHAPES.cost" /></svg>
         <span class="num" :style="{ fontSize: u(costFont) }">
           {{ card.cost }}
         </span>
@@ -255,6 +286,7 @@ const ariaLabel = computed(() => {
       <template v-if="isCreature">
         <div class="badge attack" :class="attackTrend" :style="geo.attack">
           <img v-if="parts.attack.src" class="icon-img" :src="parts.attack.src" :srcset="parts.attack.srcset" alt="" draggable="false" />
+          <svg v-else class="shape" viewBox="0 0 88 88" aria-hidden="true"><path :d="SHAPES.attack" /></svg>
           <span class="num" :style="{ fontSize: u(statFont(attackValue)) }">
             {{ attackValue }}
           </span>
@@ -264,6 +296,7 @@ const ariaLabel = computed(() => {
         </div>
         <div class="badge health" :class="healthTrend" :style="geo.health">
           <img v-if="parts.health.src" class="icon-img" :src="parts.health.src" :srcset="parts.health.srcset" alt="" draggable="false" />
+          <svg v-else class="shape" viewBox="0 0 88 88" aria-hidden="true"><path :d="SHAPES.health" /></svg>
           <svg v-if="healthTrend === 'down'" viewBox="0 0 88 88" aria-hidden="true">
             <path class="crack" :d="SHAPES.crack" />
           </svg>
@@ -296,6 +329,16 @@ const ariaLabel = computed(() => {
         :title="`${faction.label}陣營`"
         draggable="false"
       />
+      <span
+        v-else-if="!isHand"
+        class="faction-icon faction-fallback"
+        :style="box(layout.faction)"
+        role="img"
+        :aria-label="`${faction.label}陣營`"
+        :title="`${faction.label}陣營`"
+      >
+        <svg viewBox="0 0 24 24" :class="faction.icon.mode" aria-hidden="true"><path :d="faction.icon.d" /></svg>
+      </span>
 
       <div v-if="keywords.length" class="keywords" :style="isHand ? handKeywordsStyle : fullKeywordsStyle">
         <span
@@ -334,6 +377,17 @@ const ariaLabel = computed(() => {
 .face > * {
   position: absolute;
 }
+.face.no-frame {
+  border-color: var(--dark);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(160deg, var(--main), var(--light) 55%, var(--main));
+}
+.face.no-frame:not(.hand) {
+  box-shadow:
+    inset 0 0 0 calc(12 * 100cqw / 500) var(--dark),
+    0 6px 18px rgba(62, 53, 80, 0.18);
+}
 .frame {
   width: auto;
   height: auto;
@@ -349,6 +403,11 @@ const ariaLabel = computed(() => {
 }
 .crown {
   pointer-events: none;
+}
+.crown-fallback path {
+  fill: #f0b45a;
+  stroke: #c98a2e;
+  stroke-width: 3;
 }
 .face.hand .art {
   background: radial-gradient(ellipse at 50% 45%, #fff 0%, var(--light) 55%, var(--main) 130%);
@@ -427,7 +486,7 @@ svg.stroke path {
   justify-content: center;
   box-sizing: border-box;
 }
-.ribbon.hand {
+.ribbon.plain {
   background: #fffdf7;
   clip-path: polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
   box-shadow: inset 0 -3px 0 rgba(62, 53, 80, 0.08);
@@ -467,6 +526,10 @@ svg.stroke path {
 .r-legendary .gem {
   animation: shimmer 2.4s ease-in-out infinite;
 }
+.textbox.plain {
+  background: #fffdf7;
+  border-radius: calc(16 * 100cqw / 500);
+}
 .textbox {
   box-sizing: border-box;
   display: flex;
@@ -503,6 +566,22 @@ svg.stroke path {
   height: 100%;
   overflow: visible;
   pointer-events: none;
+}
+.badge.cost .shape path {
+  fill: var(--c-sky, #a9d4ec);
+  stroke: #2f5f8a;
+  stroke-width: 5;
+}
+.badge.attack .shape path {
+  fill: var(--c-butter, #f6e3a1);
+  stroke: #3e3550;
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+.badge.health .shape path {
+  fill: var(--c-pink, #f2b8c6);
+  stroke: #3e3550;
+  stroke-width: 4;
 }
 .badge.health path.crack {
   fill: none;
@@ -547,6 +626,20 @@ svg.stroke path {
 }
 .faction-icon {
   pointer-events: auto;
+}
+.faction-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: #fffdf7;
+  border: calc(4 * 100cqw / 500) solid var(--dark);
+  color: var(--dark);
+}
+.faction-fallback svg {
+  width: 60%;
+  height: 60%;
 }
 .keywords {
   display: flex;

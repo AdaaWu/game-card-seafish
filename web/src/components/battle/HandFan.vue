@@ -126,7 +126,7 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
   inset: 0;
   box-sizing: border-box;
   border-radius: 14px;
-  background: url('@assets/ui/card-back.webp') center / cover no-repeat;
+  background: #8d74c2 url('@assets/ui/card-back.webp') center / cover no-repeat;
   box-shadow: 0 3px 8px rgba(62, 53, 80, 0.2);
   transform: rotateY(180deg);
   backface-visibility: hidden;
