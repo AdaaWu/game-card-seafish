@@ -27,7 +27,12 @@ function openSettings() {
 <template>
   <div class="app-root">
     <div class="sea-bg" aria-hidden="true">
-      <span v-for="i in 12" :key="i" class="bubble" :style="{ '--i': i }" />
+      <span
+        v-for="i in 12"
+        :key="i"
+        class="bubble"
+        :style="{ '--i': i, left: `${(i * 37) % 100}%`, width: `${8 + ((i * 7) % 14)}px`, animationDelay: `-${(i * 53) % 17}s` }"
+      />
     </div>
     <RouterView />
     <button v-if="route.name !== 'title'" class="gear" type="button" aria-label="設定" @click="openSettings">
@@ -161,14 +166,11 @@ button {
 .bubble {
   position: absolute;
   bottom: -40px;
-  left: calc(var(--i) * 8%);
-  width: calc(8px + var(--i) * 1.5px);
   aspect-ratio: 1;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.25);
   animation: rise calc(9s + var(--i) * 1.3s) linear infinite;
-  animation-delay: calc(var(--i) * -1.7s);
 }
 @keyframes rise {
   to {

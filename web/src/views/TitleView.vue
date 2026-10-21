@@ -37,7 +37,7 @@ onMounted(() => document.querySelector<HTMLElement>('.title-page')?.focus())
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 48px;
+  gap: clamp(16px, 4vh, 48px);
   cursor: pointer;
   outline: none;
 }
@@ -48,19 +48,21 @@ onMounted(() => document.querySelector<HTMLElement>('.title-page')?.focus())
   gap: 8px;
 }
 .hero {
-  width: min(260px, 50vw);
+  width: min(260px, 50vw, 38vh);
   filter: drop-shadow(0 10px 18px rgba(62, 53, 80, 0.18));
 }
 h1 {
   margin: 0;
   text-align: center;
-  font-size: clamp(36px, 6vw, 72px);
+  font-size: clamp(32px, min(6vw, 9vh), 72px);
   font-weight: 900;
   color: #fff;
   letter-spacing: 0.06em;
-  -webkit-text-stroke: 10px var(--c-lavender-deep);
+  -webkit-text-stroke: 6px var(--c-lavender-deep);
   paint-order: stroke fill;
-  text-shadow: 0 8px 0 rgba(141, 116, 194, 0.35);
+  text-shadow:
+    0 3px 0 #8d74c2,
+    0 8px 0 rgba(141, 116, 194, 0.35);
 }
 .hint {
   margin: 0;
