@@ -1012,11 +1012,13 @@ const uiStyle = computed(() => {
     6px 6px 0 #d8cdea;
 }
 .count {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: rgba(46, 39, 66, 0.82);
+  box-shadow: inset 0 0 0 2px rgba(169, 212, 236, 0.55);
   font: 800 var(--count) var(--font-num);
   line-height: 1;
   color: #fff;
-  -webkit-text-stroke: 2px var(--c-ink);
-  paint-order: stroke fill;
   white-space: nowrap;
 }
 .deck.few .count {

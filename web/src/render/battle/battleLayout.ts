@@ -130,7 +130,7 @@ export function computeLayout(w: number, h: number): BattleLayout {
   const mana1 = manaSize(drop1, font1)
   const mana2 = manaSize(drop2, font2)
   const deckFont = Math.max(30, minFont * 1.2)
-  const deckW = 44 + 10 + deckFont * 1.4
+  const deckW = 44 + 10 + deckFont * 1.4 + 24
   const deckH = Math.max(66, deckFont * 1.3)
   const endW = Math.max(180, 96 * cssPx)
   const endH = Math.max(72, 52 * cssPx)
