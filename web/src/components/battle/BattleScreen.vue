@@ -1033,9 +1033,9 @@ const uiStyle = computed(() => {
   border-radius: 20px;
   font-weight: 800;
   color: #fff;
-  background: var(--c-lavender);
+  background: #7a64b0;
   box-shadow:
-    0 5px 0 var(--c-lavender-deep),
+    0 5px 0 #5e4c94,
     var(--shadow);
   cursor: pointer;
   text-shadow: 0 1px 2px rgba(62, 53, 80, 0.4);
@@ -1058,7 +1058,9 @@ const uiStyle = computed(() => {
 }
 .end-turn.enemy,
 .end-turn:disabled {
-  background: var(--c-disabled);
+  background: #e4dfea;
+  color: var(--c-ink-soft);
+  text-shadow: none;
   box-shadow: none;
   cursor: default;
 }

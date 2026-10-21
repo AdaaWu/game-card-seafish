@@ -42,20 +42,23 @@ withDefaults(
 }
 .drop {
   width: var(--d);
-  height: calc(var(--d) * 1.3);
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  border: 2.5px solid #8cc4e8;
+  height: var(--d);
+  margin-top: calc(var(--d) * 0.2);
+  border-radius: 50% 0 50% 50%;
+  transform: rotate(-45deg);
+  border: 2px solid rgba(140, 196, 232, 0.55);
   box-sizing: border-box;
-  background: transparent;
+  background: rgba(140, 196, 232, 0.18);
   transition: background 0.2s;
 }
 .drop.full {
   border-color: #e8f6ff;
-  background: radial-gradient(circle at 35% 30%, #fff 0 18%, #a9d4ec 40%, #5b9bc9);
+  background: radial-gradient(circle at 45% 35%, #fff 0 16%, #a9d4ec 40%, #5b9bc9);
   box-shadow: 0 0 6px rgba(169, 212, 236, 0.9);
 }
 .drop.locked {
-  opacity: 0.3;
+  border-color: transparent;
+  opacity: 0.15;
 }
 .drop.preview {
   animation: blink 0.6s ease-in-out infinite;

@@ -99,6 +99,56 @@ function iceTexture(): THREE.CanvasTexture {
   return t
 }
 
+// 場地底色：四邊淡出的柔邊橢圓漸層
+function laneTexture(): THREE.CanvasTexture {
+  const w = 256
+  const h = 128
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  const ctx = c.getContext('2d')!
+  ctx.scale(1, h / w)
+  const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2)
+  g.addColorStop(0, 'rgba(242,250,251,0.16)')
+  g.addColorStop(0.6, 'rgba(242,250,251,0.12)')
+  g.addColorStop(1, 'rgba(242,250,251,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, w, w)
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
+// 潮汐分隔線：兩端淡出的柔邊波紋
+function dividerTexture(): THREE.CanvasTexture {
+  const w = 1024
+  const h = 16
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  const ctx = c.getContext('2d')!
+  const g = ctx.createLinearGradient(0, 0, w, 0)
+  g.addColorStop(0, 'rgba(242,250,251,0)')
+  g.addColorStop(0.2, 'rgba(242,250,251,0.7)')
+  g.addColorStop(0.8, 'rgba(242,250,251,0.7)')
+  g.addColorStop(1, 'rgba(242,250,251,0)')
+  ctx.strokeStyle = g
+  ctx.lineCap = 'round'
+  ctx.shadowColor = 'rgba(242,250,251,0.8)'
+  ctx.shadowBlur = 4
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  for (let x = 0; x <= w; x += 4) {
+    const y = h / 2 + Math.sin((x / w) * Math.PI * 12) * 3
+    if (x === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.stroke()
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
 function backgroundTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas')
   c.width = 4
@@ -221,22 +271,24 @@ export class Battlefield {
     this.disposables.push(bubbleGeo, pointsMat)
 
     // 潮汐分隔線
-    const dividerGeo = new THREE.PlaneGeometry(px(LANE_W + 200), px(4))
-    const dividerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false })
+    const dividerTex = dividerTexture()
+    const dividerGeo = new THREE.PlaneGeometry(px(LANE_W + 200), px(16))
+    const dividerMat = new THREE.MeshBasicMaterial({ map: dividerTex, transparent: true, depthWrite: false })
     const divider = new THREE.Mesh(dividerGeo, dividerMat)
     divider.position.set(0, 0, -0.5)
     this.scene.add(divider)
-    this.disposables.push(dividerGeo, dividerMat)
+    this.disposables.push(dividerTex, dividerGeo, dividerMat)
 
     // 雙方場地底色
+    const laneTex = laneTexture()
     const laneGeo = new THREE.PlaneGeometry(px(LANE_W), px(210))
-    const laneMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, depthWrite: false })
+    const laneMat = new THREE.MeshBasicMaterial({ map: laneTex, transparent: true, depthWrite: false })
     for (const pid of ['p1', 'p2'] as const) {
       const lane = new THREE.Mesh(laneGeo, laneMat)
       lane.position.set(0, ROW_Y[pid], -0.6)
       this.scene.add(lane)
     }
-    this.disposables.push(laneGeo, laneMat)
+    this.disposables.push(laneTex, laneGeo, laneMat)
 
     const seamGeo = new THREE.PlaneGeometry(px(8), MINION_H)
     const seamMat = new THREE.MeshBasicMaterial({ color: 0xf6e3a1, transparent: true, opacity: 0.95, depthWrite: false })
