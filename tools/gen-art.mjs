@@ -175,6 +175,8 @@ function findGenerated(threadId) {
 
 function postProcess(file) {
   execFileSync('python3', [join(ROOT, 'tools/remove-bg.py'), file, '--fit', String(FIT), '--size', String(SIZE)], { stdio: 'ignore' });
+  // 母檔轉成遊戲用的 webp
+  execFileSync('python3', [join(ROOT, 'tools/to-webp.py'), file], { stdio: 'ignore' });
 }
 
 async function generate(job) {
