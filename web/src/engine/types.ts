@@ -124,6 +124,8 @@ export interface GameConfig {
   decks: Record<PlayerId, string[]>
   seed: number
   heroHealth?: Partial<Record<PlayerId, number>>
+  // false 時牌庫照傳入順序，不洗牌
+  shuffle?: boolean
 }
 
 export type PlayCardAction = {

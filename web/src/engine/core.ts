@@ -112,9 +112,11 @@ export function startGame(config: GameConfig): ApplyResult {
       if (!card) throw new Error(`未知卡牌：${cardId}`)
       return createInstance(card, newInstanceId(state), pid)
     })
-    for (let i = deck.length - 1; i > 0; i--) {
-      const j = Math.floor(random(ctx) * (i + 1))
-      ;[deck[i], deck[j]] = [deck[j] as CardInstance, deck[i] as CardInstance]
+    if (config.shuffle !== false) {
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(random(ctx) * (i + 1))
+        ;[deck[i], deck[j]] = [deck[j] as CardInstance, deck[i] as CardInstance]
+      }
     }
     state.players[pid].deck = deck
   }
