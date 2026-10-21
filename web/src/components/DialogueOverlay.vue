@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
   z-index: 2;
 }
 .side.dim {
-  filter: brightness(0.6) saturate(0.7);
+  filter: brightness(0.75) saturate(0.7);
   transform: translateY(2%) scale(0.96);
 }
 .figure {
@@ -274,14 +274,14 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 34px 32px 22px;
+  padding: 16px 32px 22px;
   border: 3px solid #fff;
   background: #fbf6ec;
 }
 .speaker {
-  position: absolute;
-  top: -20px;
-  left: 28px;
+  flex: none;
+  align-self: flex-start;
+  margin-bottom: 8px;
   padding: 6px 20px;
   border-radius: 999px;
   background: var(--c-lavender-deep);
@@ -290,9 +290,8 @@ onBeforeUnmount(() => {
   font-size: 18px;
 }
 .speaker.right {
-  left: auto;
-  right: 28px;
-  background: #5e9fb0;
+  align-self: flex-end;
+  background: #3a7a8a;
 }
 .text {
   min-height: 0;
@@ -356,9 +355,25 @@ onBeforeUnmount(() => {
   min-width: 4.5em;
   color: var(--c-lavender-deep);
 }
+/* 矮螢幕名牌放在文字左側，不佔高度 */
 @media (max-height: 500px) {
   .box {
-    padding: 20px 24px 8px;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 20px 8px;
+  }
+  .speaker {
+    margin-bottom: 0;
+    padding: 4px 14px;
+    font-size: 15px;
+  }
+  .speaker.right {
+    order: 1;
+    align-self: flex-start;
+  }
+  .text {
+    flex: 1;
   }
   .text {
     font-size: 18px;
