@@ -8,6 +8,8 @@ import { FREE_HERO_HP, storyPortraitId, type FreeOpponent } from '@/components/b
 import { decks } from '@/content'
 import { audio } from '@/fx/audio'
 import { PLAYER_DECK_ID, useProgressStore } from '@/stores/progress'
+import { useSettingsStore } from '@/stores/settings'
+import { shouldStartTutorial } from '@/tutorial/tutorialFlow'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +19,20 @@ const queryBattleId = computed(() => (typeof route.query.battleId === 'string' ?
 const freeMode = computed(() => route.query.mode === 'free')
 const freeOpponent = ref<FreeOpponent | null>(null)
 const reporting = ref(false)
+const settings = useSettingsStore()
+
+// 進場當下判斷一次，教學結束後寫入存檔不影響本場
+const entryBattleId = freeMode.value ? null : (queryBattleId.value ?? progress.currentBattle?.id ?? null)
+const tutorial = shouldStartTutorial({
+  battleId: entryBattleId,
+  skipTutorial: settings.settings.skipTutorial,
+  tutorialDone: settings.settings.tutorialDone,
+  cleared: entryBattleId !== null && progress.statusOf(entryBattleId) === 'cleared',
+})
+
+function tutorialEnded() {
+  if (!settings.settings.tutorialDone) void settings.update({ tutorialDone: true })
+}
 
 // 重新整理後 currentBattle 會遺失，依網址補回
 onMounted(() => {
@@ -59,7 +75,9 @@ function freeFinished() {
     :enemy-portrait-id="storyPortraitId(storyBattle.enemy.name)"
     :enemy-hero-hp="storyBattle.enemyHeroHp"
     :bgm="storyBattle.isChapterFinal ? 'bgm_battle_boss' : 'bgm_battle_normal'"
+    :tutorial="tutorial"
     @finished="storyFinished"
+    @tutorial-end="tutorialEnded"
   />
   <template v-else-if="freeMode">
     <BattleScreen

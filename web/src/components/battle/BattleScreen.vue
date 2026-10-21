@@ -1,22 +1,37 @@
 <script setup lang="ts">
 // 對戰畫面：玩家（p1）對 AI（p2）；three.js 戰場＋DOM 疊層，事件依序播放動畫
 import gsap from 'gsap'
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import CardView from '@/components/CardView.vue'
 import { chooseAction, MAX_ACTIONS_PER_TURN } from '@/ai'
 import { characterByName, cardDb, tokens } from '@/content'
-import { cardArtUrl, FACTION_STYLE } from '@/content/cardStyle'
+import { cardArtUrl, FACTION_STYLE, KEYWORDS } from '@/content/cardStyle'
 import { createRng, hasNoActions, MAX_BOARD, type Action, type Card, type GameEvent, type PlayerId } from '@/engine'
 import { Animator } from '@/fx/animator'
 import { TIMING } from '@/fx/animationPlan'
 import { audio, type BgmName } from '@/fx/audio'
 import { loadImage } from '@/render/cardTexture'
 import { Battlefield } from '@/render/battle/Battlefield'
-import { computeLayout, DESIGN_H, DESIGN_W, type Rect } from '@/render/battle/battleLayout'
+import { computeLayout, DESIGN_H, DESIGN_W, LANE_W, MINION_H, ROW_OFFSET, type Rect } from '@/render/battle/battleLayout'
 import { roundsOf } from '@/render/battle/viewModel'
 import { useBattleStore } from '@/stores/battle'
 import { useSettingsStore } from '@/stores/settings'
+import {
+  advance,
+  createTutorial,
+  currentBeat,
+  isAllowed,
+  isRunning,
+  signalOf,
+  skipTutorial,
+  TUTORIAL_TOTAL_STEPS,
+  type Focus,
+  type Signal,
+  type TutorialState,
+} from '@/tutorial/tutorialFlow'
+import { scriptedEnemyAction, tutorialSetup } from '@/tutorial/tutorialScript'
+import TutorialOverlay, { type Hole } from './TutorialOverlay.vue'
 import BattleResult from './BattleResult.vue'
 import CardDetail from './CardDetail.vue'
 import HandFan from './HandFan.vue'
@@ -40,10 +55,12 @@ const props = withDefaults(
     bgm?: BgmName
     // 戰敗時離開按鈕的文字
     exitLabel?: string
+    // 以新手教學開局
+    tutorial?: boolean
   }>(),
-  { seed: undefined, enemyPortraitId: undefined, bgm: 'bgm_battle_normal', exitLabel: '回地圖' },
+  { seed: undefined, enemyPortraitId: undefined, bgm: 'bgm_battle_normal', exitLabel: '回地圖', tutorial: false },
 )
-const emit = defineEmits<{ finished: [result: Outcome] }>()
+const emit = defineEmits<{ finished: [result: Outcome]; tutorialEnd: [] }>()
 
 const PLAYER_NAME = '小葉'
 const END: Action = { type: 'endTurn' }
@@ -121,7 +138,35 @@ const detailW = computed(() => layout.value.detailCardW + 12 + layout.value.deta
 const rounds = computed(() => roundsOf(view.value?.turn ?? 1))
 
 const locked = computed(() => store.busy || loading.value || outcome.value !== null)
-const legal = computed(() => store.legal)
+
+// ---------- 新手教學 ----------
+const tut = shallowRef<TutorialState | null>(props.tutorial ? createTutorial() : null)
+const tutOn = computed(() => isRunning(tut.value))
+const beat = computed(() => (tut.value ? currentBeat(tut.value) : null))
+const tutHoles = shallowRef<Hole[]>([])
+const nudgeKey = ref(0)
+const guideVisible = computed(
+  () => tutOn.value && !loading.value && outcome.value === null && (beat.value?.kind === 'wait' || !store.busy),
+)
+const tutKeyword = computed(() => {
+  const k = beat.value?.keyword
+  const info = k ? KEYWORDS[k] : undefined
+  return info ? { label: info.label, desc: info.desc } : null
+})
+const skipAt = computed<Rect>(() => {
+  const g = layout.value.gear
+  return { x: g.x - 24, y: g.y + 14, w: 0, h: 0 }
+})
+
+// 教學進行中只留目前步驟允許的動作
+const legal = computed<Action[]>(() => {
+  const t = tut.value
+  const s = store.state
+  if (!t || !s || !isRunning(t)) return store.legal
+  return store.legal.filter((a) => isAllowed(t, a, s))
+})
+// 示範非法目標的步驟可以選攻擊者，實際攻擊仍由 commit 擋下
+const attackSource = computed(() => (beat.value?.selectAttackers ? store.legal : legal.value))
 const playable = computed(() => {
   const set = new Set<string>()
   for (const a of legal.value) if (a.type === 'playCard' && a.cardInstanceId) set.add(a.cardInstanceId)
@@ -129,7 +174,7 @@ const playable = computed(() => {
 })
 const canAttack = computed(() => {
   const set = new Set<string>()
-  for (const a of legal.value) if (a.type === 'attack') set.add(a.attackerId)
+  for (const a of attackSource.value) if (a.type === 'attack') set.add(a.attackerId)
   return set
 })
 const onlyEndTurn = computed(() => legal.value.length === 1)
@@ -249,12 +294,125 @@ function showHint(text: string, error = true): void {
   hintTimer = setTimeout(() => (hint.value = null), 1200)
 }
 
+// ---------- 教學推進 ----------
+function tutSignal(signal: Signal): void {
+  const t = tut.value
+  if (!t || !isRunning(t)) return
+  const next = advance(t, signal)
+  if (next === t) return
+  const done = currentBeat(t)
+  tut.value = next
+  // 下一步不看手牌時收合，避免手機展開的手牌蓋住場上
+  const focus = currentBeat(next)?.focus ?? []
+  if (!focus.some((f) => f === 'hand' || f.startsWith('card:') || f.startsWith('cost:'))) handOpen.value = false
+  if (!isRunning(next)) endTutorial('教學完成！把對手打倒吧')
+  else if (done?.kind === 'do') showHint('做得好！', false)
+}
+
+function endTutorial(message: string): void {
+  showHint(message, false)
+  tutHoles.value = []
+  emit('tutorialEnd')
+}
+
+function onTutorialSkip(): void {
+  const t = tut.value
+  if (!t || !isRunning(t)) return
+  audio.play('sfx_ui_click')
+  tut.value = skipTutorial(t)
+  cancelMode()
+  endTutorial('已跳過教學')
+  scheduleAutoEnd()
+}
+
+// 不允許的操作不報錯，只讓高亮外框再閃一次
+function nudge(): void {
+  nudgeKey.value += 1
+}
+
+function rectOfEl(el: Element | null): Rect | null {
+  const base = uiEl.value?.getBoundingClientRect()
+  if (!el || !base) return null
+  const r = el.getBoundingClientRect()
+  const s = scale.value
+  return { x: (r.left - base.left) / s, y: (r.top - base.top) / s, w: r.width / s, h: r.height / s }
+}
+
+function unionOf(rects: (Rect | null)[]): Rect | null {
+  const rs = rects.filter((r): r is Rect => r !== null && r.w > 0 && r.h > 0)
+  if (rs.length === 0) return null
+  const x = Math.min(...rs.map((r) => r.x))
+  const y = Math.min(...rs.map((r) => r.y))
+  return { x, y, w: Math.max(...rs.map((r) => r.x + r.w)) - x, h: Math.max(...rs.map((r) => r.y + r.h)) - y }
+}
+
+const MINION_HALF = { w: 70, h: MINION_H / 2 }
+
+function minionRects(pid: PlayerId): Rect[] {
+  return (view.value?.players[pid].board ?? []).flatMap((m) => {
+    const c = field?.minionLogical(m.instanceId)
+    return c ? [{ x: c.x - MINION_HALF.w, y: c.y - MINION_HALF.h, w: MINION_HALF.w * 2, h: MINION_HALF.h * 2 }] : []
+  })
+}
+
+function handEl(cardId: string, part: string): Element | null {
+  const c = view.value?.players.p1.hand.find((h) => h.cardId === cardId)
+  return c ? (uiEl.value?.querySelector(`[data-hand="${c.instanceId}"] ${part}`) ?? null) : null
+}
+
+// 高亮目標換算成邏輯座標：DOM 用 getBoundingClientRect，場上生物用戰場投影
+function focusRects(f: Focus): Rect[] {
+  const ui = uiEl.value
+  const l = layout.value
+  const one = (r: Rect | null) => (r ? [r] : [])
+  if (f === 'heroP1') return one(rectOfEl(ui?.querySelector('[data-hero="p1"]') ?? null))
+  if (f === 'heroP2' || f === 'enemyHero') return one(rectOfEl(ui?.querySelector('[data-hero="p2"]') ?? null))
+  if (f === 'mana') return one(rectOfEl(ui?.querySelector('.mana-p1') ?? null))
+  if (f === 'endTurn') return one(rectOfEl(ui?.querySelector('[data-testid="end-turn"]') ?? null))
+  if (f === 'hand') return one(unionOf([...(ui?.querySelectorAll('[data-hand] .hand-inner') ?? [])].map(rectOfEl)))
+  if (f === 'myBoard') return [{ x: (l.lw - LANE_W) / 2, y: l.boardCy + ROW_OFFSET - 110, w: LANE_W, h: 220 }]
+  if (f === 'myMinions') return minionRects('p1')
+  if (f === 'enemyMinions') return minionRects('p2')
+  if (f.startsWith('card:')) return one(rectOfEl(handEl(f.slice(5), '.hand-inner')))
+  if (f.startsWith('cost:')) return one(rectOfEl(handEl(f.slice(5), '.badge.cost')))
+  return []
+}
+
+const HOLE_PAD = 10
+
+function refreshHoles(): void {
+  const b = beat.value
+  if (!b || !guideVisible.value) {
+    if (tutHoles.value.length) tutHoles.value = []
+    return
+  }
+  const holes = b.focus.flatMap((f) =>
+    focusRects(f).map((r) => ({
+      focus: f,
+      x: Math.round(r.x - HOLE_PAD),
+      y: Math.round(r.y - HOLE_PAD),
+      w: Math.round(r.w + HOLE_PAD * 2),
+      h: Math.round(r.h + HOLE_PAD * 2),
+    })),
+  )
+  if (JSON.stringify(holes) !== JSON.stringify(tutHoles.value)) tutHoles.value = holes
+}
+
+// 手牌展開、生物移位都會改變位置，教學期間定時重算
+let holeTimer: ReturnType<typeof setInterval> | undefined
+watch(guideVisible, (on) => {
+  clearInterval(holeTimer)
+  refreshHoles()
+  if (on) holeTimer = setInterval(refreshHoles, 150)
+})
+
 // 我方無可用動作時提示後自動結束回合
 const AUTO_END = { delayMs: 1000, hint: '無可用動作' } as const
 
 function canAutoEnd(): boolean {
   const s = store.state
-  return !!s && hasNoActions(s, 'p1') && !locked.value && !enemyTurn.value
+  // 教學期間不自動結束回合
+  return !!s && !tutOn.value && hasNoActions(s, 'p1') && !locked.value && !enemyTurn.value
 }
 
 function scheduleAutoEnd(): void {
@@ -307,8 +465,8 @@ async function runAi(): Promise<void> {
     const s = store.state
     if (!s || s.winner !== null || s.activePlayer !== 'p2') break
     await animator?.wait(TIMING.aiThink)
-    // 安全上限：40 步後強制結束回合
-    const action = step >= MAX_ACTIONS_PER_TURN ? END : chooseAction(s, 'p2', aiRng)
+    // 安全上限：40 步後強制結束回合；教學期間照劇本
+    const action = step >= MAX_ACTIONS_PER_TURN ? END : tutOn.value ? scriptedEnemyAction(s) : chooseAction(s, 'p2', aiRng)
     let r = store.act(action)
     if (!r.ok) r = store.act(END)
     if (!r.ok) break
@@ -318,6 +476,14 @@ async function runAi(): Promise<void> {
 
 async function commit(action: Action): Promise<void> {
   if (locked.value) return
+  const t = tut.value
+  const before = store.state
+  if (t && before && isRunning(t) && !isAllowed(t, action, before)) {
+    cancelMode()
+    nudge()
+    return
+  }
+  const signal = t && before && isRunning(t) ? signalOf(action, before) : null
   mode.value = { kind: 'idle' }
   attackDrag.value = null
   field?.setSelected(null)
@@ -330,7 +496,9 @@ async function commit(action: Action): Promise<void> {
   }
   try {
     await runEvents(r.events, false)
+    if (signal && !disposed) tutSignal(signal)
     if (!disposed && store.state?.winner === null && store.state.activePlayer === 'p2') await runAi()
+    if (!disposed && store.state?.winner === null && store.state.activePlayer === 'p1') tutSignal({ type: 'playerTurn' })
   } finally {
     resetBoost()
     store.busy = false
@@ -365,6 +533,10 @@ function castOrTarget(id: string, immediate: boolean): void {
 
 function rejectCard(id: string): boolean {
   if (playable.value.has(id)) return false
+  if (tutOn.value) {
+    nudge()
+    return true
+  }
   const reason = store.reasonFor({ type: 'playCard', cardInstanceId: id })
   showHint(friendly(reason ?? '現在不能出這張牌'))
   shakeHand(id)
@@ -402,6 +574,7 @@ function commitTarget(targetId: string): void {
   if (m.kind !== 'target') return
   if (!m.targets.includes(targetId)) {
     showHint(m.source.type === 'attack' ? '這個目標不能攻擊' : '不是合法目標')
+    if (m.source.type === 'attack' && targetId === 'p2-hero') tutSignal({ type: 'heroAttackBlocked' })
     return
   }
   if (m.source.type === 'attack') void commit({ type: 'attack', attackerId: m.source.id, targetId })
@@ -410,12 +583,16 @@ function commitTarget(targetId: string): void {
 
 function startAttack(id: string, x: number, y: number): void {
   if (!canAttack.value.has(id)) {
+    if (tutOn.value) {
+      nudge()
+      return
+    }
     const reason = store.reasonFor({ type: 'attack', attackerId: id, targetId: 'p2-hero' })
     showHint(friendly(reason ?? '現在不能攻擊'))
     if (field) gsap.timeline().add(field.tlShakeNo(id))
     return
   }
-  const ts = legal.value.flatMap((a) => (a.type === 'attack' && a.attackerId === id ? [a.targetId] : []))
+  const ts = attackSource.value.flatMap((a) => (a.type === 'attack' && a.attackerId === id ? [a.targetId] : []))
   mode.value = { kind: 'target', source: { type: 'attack', id }, targets: ts }
   attackDrag.value = { id, sx: x, sy: y }
   field?.setSelected(id)
@@ -525,7 +702,11 @@ function onUp(e: PointerEvent): void {
     attackDrag.value = null
     const over = hitTarget(p.x, p.y)
     if (over && targets.value.has(over)) commitTarget(over)
-    else cancelMode()
+    else {
+      // 教學中拖到非法目標時說明原因
+      if (over && tutOn.value) commitTarget(over)
+      cancelMode()
+    }
   } else if (a) attackDrag.value = null
 }
 
@@ -555,6 +736,10 @@ function onKey(e: KeyboardEvent): void {
 
 function endTurn(): void {
   if (locked.value || enemyTurn.value || endLocked.value) return
+  if (tutOn.value && !legal.value.some((a) => a.type === 'endTurn')) {
+    nudge()
+    return
+  }
   clearTimeout(autoEndTimer)
   endLocked.value = true
   setTimeout(() => (endLocked.value = false), 500)
@@ -612,6 +797,11 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(Math.max(v, lo), Math.max(lo, hi))
 }
 
+// 看卡牌細節步驟：進入該步之後新出現的細節框才算完成
+watch(detail, (d) => {
+  if (d) tutSignal({ type: 'detailShown' })
+})
+
 // ---------- 場上外觀同步 ----------
 const fieldReady = ref(false)
 watchEffect(() => {
@@ -649,11 +839,13 @@ async function onRetry(): Promise<void> {
 
 async function startBattle(): Promise<void> {
   if (!animator) return
+  const t = tutOn.value ? tutorialSetup(props.playerDeck, props.enemyDeck) : null
   const events = store.start({
-    playerDeck: props.playerDeck,
-    enemyDeck: props.enemyDeck,
-    enemyHeroHp: props.enemyHeroHp,
+    playerDeck: t?.playerDeck ?? props.playerDeck,
+    enemyDeck: t?.enemyDeck ?? props.enemyDeck,
+    enemyHeroHp: t?.enemyHeroHp ?? props.enemyHeroHp,
     seed: battleSeed,
+    ...(t ? { shuffle: t.shuffle } : {}),
   })
   loading.value = false
   await runEvents(events, false)
@@ -681,7 +873,8 @@ function fit(): void {
 }
 
 async function preloadImages(): Promise<Map<string, HTMLImageElement | null>> {
-  const ids = new Set([...props.playerDeck, ...props.enemyDeck, ...tokens.map((t) => t.id)])
+  const t = tutOn.value ? tutorialSetup(props.playerDeck, props.enemyDeck) : null
+  const ids = new Set([...props.playerDeck, ...props.enemyDeck, ...(t ? [...t.playerDeck, ...t.enemyDeck] : []), ...tokens.map((c) => c.id)])
   const map = new Map<string, HTMLImageElement | null>()
   const timeout = new Promise<void>((r) => setTimeout(r, 8000))
   await Promise.race([
@@ -730,6 +923,7 @@ onUnmounted(() => {
   clearTimeout(hintTimer)
   clearTimeout(autoEndTimer)
   clearTimeout(hoverTimer)
+  clearInterval(holeTimer)
   resizeObserver?.disconnect()
   window.removeEventListener('pointermove', onMove)
   window.removeEventListener('pointerup', onUp)
@@ -915,6 +1109,20 @@ const uiStyle = computed(() => {
         <div class="vignette" />
         <div v-if="fx.banner" :key="fx.banner.key" class="banner" :style="{ top: `${layout.boardCy - 40}px` }">{{ fx.banner.text }}</div>
         <div v-if="hint" :key="hint.key" class="hint" :style="{ top: `${layout.board.y + 20}px` }" role="status">{{ hint.text }}</div>
+        <TutorialOverlay
+          v-if="tutOn"
+          :beat="beat"
+          :show-guide="guideVisible"
+          :holes="tutHoles"
+          :total="TUTORIAL_TOTAL_STEPS"
+          :lw="layout.lw"
+          :lh="layout.lh"
+          :skip-at="skipAt"
+          :nudge-key="nudgeKey"
+          :keyword="tutKeyword"
+          @next="tutSignal({ type: 'next' })"
+          @skip="onTutorialSkip"
+        />
         <div v-if="loading" class="loading">潛入海底中…</div>
 
         <BattleResult

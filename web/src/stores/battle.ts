@@ -11,6 +11,8 @@ export interface BattleSetup {
   enemyDeck: string[]
   enemyHeroHp?: number
   seed: number
+  // false 時牌庫照傳入順序
+  shuffle?: boolean
 }
 
 const tokenSet = new Set(tokens)
@@ -35,6 +37,7 @@ export const useBattleStore = defineStore('battle', () => {
       decks: { p1: setup.playerDeck, p2: setup.enemyDeck },
       seed: setup.seed,
       heroHealth: setup.enemyHeroHp ? { p2: setup.enemyHeroHp } : undefined,
+      ...(setup.shuffle === false ? { shuffle: false } : {}),
     })
     state.value = markRaw(r.state)
     // 開局抽牌由動畫逐張補上

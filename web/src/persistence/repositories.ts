@@ -17,6 +17,7 @@ export interface SettingsData {
   speed: GameSpeed
   skipTutorial: boolean
   seenOpening: boolean
+  tutorialDone: boolean
 }
 
 export const DEFAULT_SETTINGS: SettingsData = {
@@ -26,6 +27,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   speed: 2,
   skipTutorial: false,
   seenOpening: false,
+  tutorialDone: false,
 }
 
 function isStringArray(v: unknown): v is string[] {
@@ -76,6 +78,7 @@ export class SettingsRepository {
       speed: d.speed === 1 || d.speed === 2 ? d.speed : DEFAULT_SETTINGS.speed,
       skipTutorial: d.skipTutorial === true,
       seenOpening: d.seenOpening === true,
+      tutorialDone: d.tutorialDone === true,
     }
   }
 
