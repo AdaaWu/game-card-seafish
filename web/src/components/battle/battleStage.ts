@@ -130,7 +130,7 @@ export function createBattleStage(deps: StageDeps): AnimationStage {
         const to = centerOf(el)
         if (!el || !from || !to) return
         const tl = gsap.timeline()
-        tl.fromTo(el, { x: from.x - to.x, y: from.y - to.y, scale: 0.5, rotationY: 180 }, { x: 0, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' })
+        tl.fromTo(el, { x: from.x - to.x, y: from.y - to.y, scale: 0.5, rotationY: 180, transformPerspective: 800 }, { x: 0, y: 0, scale: 1, duration: 0.35, ease: 'power2.out' })
         tl.to(el, { rotationY: 0, duration: 0.35 * 0.3, ease: 'sine.inOut' }, 0.35 * 0.4)
         await pace.run(tl)
         return

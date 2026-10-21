@@ -73,6 +73,7 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
           </div>
           <span v-if="playable.has(c.instanceId)" class="ring" aria-hidden="true" />
         </div>
+        <span class="back-face" aria-hidden="true" />
       </div>
     </div>
   </div>
@@ -96,7 +97,9 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
   transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 .hand-inner {
+  position: relative;
   height: 100%;
+  transform-style: preserve-3d;
   pointer-events: auto;
   cursor: pointer;
   border-radius: 14px;
@@ -107,6 +110,7 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
   position: relative;
   height: 100%;
   border-radius: 14px;
+  backface-visibility: hidden;
   transition:
     transform 0.12s ease-out,
     filter 0.12s;
@@ -114,6 +118,19 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
 .card-scale {
   width: 150px;
   transform-origin: 0 0;
+  backface-visibility: hidden;
+}
+/* 抽牌翻面時看到的卡背 */
+.back-face {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: url('@assets/ui/card-back.webp') center / cover no-repeat;
+  box-shadow: 0 3px 8px rgba(62, 53, 80, 0.2);
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  pointer-events: none;
 }
 .playable .lift {
   filter: drop-shadow(0 0 8px #f6e3a1) drop-shadow(0 0 4px #f6e3a1);
