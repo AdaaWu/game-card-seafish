@@ -69,7 +69,7 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
       >
         <div class="lift">
           <div class="card-scale" :style="innerStyle">
-            <CardView v-if="cardDb[c.cardId]" :card="cardDb[c.cardId]!" size="sm" />
+            <CardView v-if="cardDb[c.cardId]" :card="cardDb[c.cardId]!" size="sm" variant="hand" />
           </div>
           <span v-if="playable.has(c.instanceId)" class="ring" aria-hidden="true" />
         </div>

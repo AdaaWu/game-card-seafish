@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { HAND_LAYOUT } from '@/content/cardStyle'
 import { computeLayout, type BattleLayout, type Rect } from '@/render/battle/battleLayout'
 
 // 舞台尺寸 = 視窗扣掉 clamp(4px, 1.2vh, 16px) 的外框
@@ -106,8 +107,19 @@ describe('computeLayout 對戰版面', () => {
     expect(l.minFont * l.scale).toBeCloseTo(Math.max(min, l.minFont * l.scale))
     expect(l.minFont * l.scale).toBeGreaterThanOrEqual(min - 0.01)
     expect(l.nameFont * l.scale).toBeGreaterThanOrEqual(min - 0.01)
-    // 手牌費用數字（卡面 64/500）
-    expect(((l.hand.cardW * 64) / 500) * l.scale).toBeGreaterThanOrEqual(min - 0.01)
+    // 手牌精簡版型的卡名、費用與攻血（卡面 500 寬）
+    const handPx = (f: number) => ((l.hand.cardW * f) / 500) * l.scale
+    expect(handPx(HAND_LAYOUT.font.name)).toBeGreaterThanOrEqual(min - 0.01)
+    expect(handPx(HAND_LAYOUT.font.costWide)).toBeGreaterThanOrEqual(min - 0.01)
+    expect(handPx(HAND_LAYOUT.font.statWide)).toBeGreaterThanOrEqual(min - 0.01)
+  })
+
+  it('手機細節卡為橫向：左側精簡卡、右側文字區至少放得下 12 個最小字級的字', () => {
+    const l = computeLayout(...stage(844, 390))
+    expect(l.compact).toBe(true)
+    expect(l.detailSideW).toBeGreaterThanOrEqual(l.minFont * 12)
+    expect(l.detailCardW * 1.4).toBeLessThanOrEqual(l.lh - 40)
+    expect(l.detailCardW + 12 + l.detailSideW).toBeLessThanOrEqual(l.lw - 40)
   })
 
   it.each(LANDSCAPE.filter(([, h]) => h >= 720))('%i×%i 桌機放大細節卡的效果文字至少 14px', (w, h) => {

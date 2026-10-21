@@ -107,14 +107,15 @@ const detail = shallowRef<{
 const detailView = computed(() => {
   const d = detail.value
   if (!d) return null
-  const base = { card: d.card, x: d.x, y: d.y, side: d.side, cardW: layout.value.detailCardW, minFont: layout.value.minFont }
+  const l = layout.value
+  const base = { card: d.card, x: d.x, y: d.y, side: d.side, cardW: l.detailCardW, sideW: l.detailSideW, minFont: l.minFont, compact: l.compact }
   if (!d.minionId) return base
   const pid = ownerOf(d.minionId)
   const vm = pid ? view.value?.players[pid].board.find((m) => m.instanceId === d.minionId) : undefined
   if (!vm) return null
-  return { ...base, attack: vm.attack, health: vm.health, keywords: vm.keywords }
+  return { ...base, attack: vm.attack, health: vm.health, maxHealth: vm.maxHealth, keywords: vm.keywords }
 })
-const detailW = computed(() => layout.value.detailCardW + 12 + Math.max(230, layout.value.minFont * 11))
+const detailW = computed(() => layout.value.detailCardW + 12 + layout.value.detailSideW)
 const rounds = computed(() => roundsOf(view.value?.turn ?? 1))
 
 const locked = computed(() => store.busy || loading.value || outcome.value !== null)
@@ -883,7 +884,7 @@ const uiStyle = computed(() => {
         </div>
 
         <div v-if="dragGhost" class="drag-ghost" :class="{ small: dragGhost.small }" :style="{ left: `${pointer.x}px`, top: `${pointer.y}px` }">
-          <CardView :card="dragGhost.card" size="sm" />
+          <CardView :card="dragGhost.card" size="sm" variant="hand" />
         </div>
 
         <div

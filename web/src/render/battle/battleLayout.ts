@@ -56,6 +56,8 @@ export interface BattleLayout {
   handRest: Rect
   playLine: number
   detailCardW: number
+  // 細節卡右側文字區寬度
+  detailSideW: number
 }
 
 export const DESIGN_W = 1920
@@ -210,8 +212,12 @@ export function computeLayout(w: number, h: number): BattleLayout {
   }
 
   const playLine = compact ? collapsedTop - 40 : handTop - 10
-  // 放大細節卡：效果文字（卡面 18/500）至少達最小字級，且不超出舞台高度
-  const detailCardW = Math.min(Math.max(300, (minFont * 500) / 18), (lh - mv * 2) / 1.4)
+  // 桌機細節卡：效果文字（卡面 18/500）至少達最小字級，且不超出舞台高度
+  // 手機細節卡：左側精簡卡，完整文字放右側文字區
+  const detailCardW = compact
+    ? Math.min(480, (lh - mv * 2 - 40) / 1.4)
+    : Math.min(Math.max(300, (minFont * 500) / 18), (lh - mv * 2) / 1.4)
+  const detailSideW = compact ? minFont * 20 : Math.max(230, minFont * 11)
 
   return {
     scale,
@@ -256,5 +262,6 @@ export function computeLayout(w: number, h: number): BattleLayout {
     handRest,
     playLine,
     detailCardW,
+    detailSideW,
   }
 }
