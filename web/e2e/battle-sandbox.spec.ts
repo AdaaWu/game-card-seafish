@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 const SHOTS = '/private/tmp/claude-501/battle-shots'
 // 5173 被其他專案占用時，用 BATTLE_BASE 指定本專案的 dev server
-const SANDBOX = `${process.env.BATTLE_BASE ?? ''}/battle-sandbox`
+const SANDBOX = `${process.env.BATTLE_BASE ?? ''}/#/battle-sandbox`
 
 function collectErrors(page: Page): string[] {
   const errors: string[] = []
