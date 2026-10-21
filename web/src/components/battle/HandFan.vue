@@ -41,12 +41,18 @@ const layout = computed(() => {
     return { c, style: { transform: `translate(${x}px, ${y}px) rotate(${deg}deg)`, zIndex: i + 1 } }
   })
 })
+const emptyStyle = computed(() => {
+  const g = props.geo
+  const y = props.state === 'fan' ? g.top + g.cardH * 0.4 : g.collapsedTop + 8
+  return { left: `${g.cx}px`, top: `${y}px` }
+})
 const slotStyle = computed(() => ({ width: `${props.geo.cardW}px`, height: `${props.geo.cardH}px` }))
 const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_W})` }))
 </script>
 
 <template>
   <div class="hand" :class="state" data-testid="hand">
+    <p v-if="cards.length === 0" class="empty" :style="emptyStyle" data-testid="hand-empty">手牌空了</p>
     <div
       v-for="{ c, style } in layout"
       :key="c.instanceId"
@@ -85,6 +91,15 @@ const innerStyle = computed(() => ({ transform: `scale(${props.geo.cardW / BASE_
   inset: 0;
   pointer-events: none;
   z-index: 20;
+}
+.empty {
+  position: absolute;
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: var(--min-font);
+  font-weight: 700;
+  color: var(--c-ink-soft);
+  white-space: nowrap;
 }
 .hand.expanded {
   z-index: 34;

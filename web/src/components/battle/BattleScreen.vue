@@ -796,7 +796,7 @@ const uiStyle = computed(() => {
             class="deck deck-p2"
             :style="[pos(layout.deckP2), { '--count': `${layout.deckFont}px` }]"
             data-deck="p2"
-            :class="{ few: view.players.p2.deckCount <= 5 }"
+            :class="{ few: view.players.p2.deckCount <= 5, empty: view.players.p2.deckCount === 0 }"
           >
             <span class="pile" />
             <span class="count">{{ view.players.p2.deckCount }}</span>
@@ -831,7 +831,7 @@ const uiStyle = computed(() => {
             class="deck deck-p1"
             :style="[pos(layout.deckP1), { '--count': `${layout.deckFont}px` }]"
             data-deck="p1"
-            :class="{ few: view.players.p1.deckCount <= 5 }"
+            :class="{ few: view.players.p1.deckCount <= 5, empty: view.players.p1.deckCount === 0 }"
           >
             <span class="pile" />
             <span class="count">{{ view.players.p1.deckCount }}</span>
@@ -1027,6 +1027,15 @@ const uiStyle = computed(() => {
 .deck.few .count::after {
   content: '!';
   margin-left: 2px;
+}
+/* 牌庫空：卡堆改空盒虛線框 */
+.deck.empty .pile {
+  background: transparent;
+  border: 3px dashed #fffdf7;
+  box-shadow: none;
+}
+.deck.empty .count {
+  color: var(--c-debuff);
 }
 .end-turn {
   position: absolute;
