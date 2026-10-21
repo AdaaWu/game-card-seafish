@@ -86,10 +86,10 @@ button {
   min-height: 44px;
   font-size: 18px;
   font-weight: 700;
-  background: var(--c-lavender);
+  background: #7a64b0;
   color: #fff;
   box-shadow:
-    0 4px 0 var(--c-lavender-deep),
+    0 4px 0 #5e4c94,
     var(--shadow);
   cursor: pointer;
   transition: transform 0.1s;
@@ -97,7 +97,7 @@ button {
 }
 .btn:hover {
   transform: scale(1.05);
-  background: var(--c-lavender-deep);
+  background: #6a549f;
 }
 .btn:active {
   transform: scale(0.95);
