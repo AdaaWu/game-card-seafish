@@ -73,6 +73,7 @@ body {
 }
 #app {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 button {
   font-family: inherit;
@@ -125,6 +126,7 @@ button {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  min-height: 100dvh;
   box-sizing: border-box;
   padding: 72px 24px 32px;
 }
@@ -143,6 +145,7 @@ button {
 .app-root {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 .sea-bg {

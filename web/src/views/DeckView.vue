@@ -400,7 +400,7 @@ svg.stroke path {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 260px;
+  width: min(260px, 100%);
 }
 .kw {
   display: flex;
@@ -431,6 +431,12 @@ svg.stroke path {
   }
   .grid :deep(.card-view) {
     width: 150px !important;
+  }
+  .deck-panel {
+    padding: 16px;
+  }
+  .curve {
+    gap: 4px;
   }
 }
 </style>

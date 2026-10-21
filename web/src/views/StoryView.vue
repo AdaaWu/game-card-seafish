@@ -370,10 +370,36 @@ header p {
     width: 64px;
     height: 64px;
   }
+  .path {
+    grid-template-columns: 1fr;
+    row-gap: 18px;
+  }
+  /* 小螢幕改直排：節點在左、標題與狀態在右 */
+  .stop {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    column-gap: 14px;
+    row-gap: 2px;
+    align-items: center;
+  }
+  .node {
+    grid-row: 1 / span 2;
+  }
+  .caption {
+    align-self: end;
+    text-align: left;
+  }
+  .status {
+    align-self: start;
+  }
   .reef {
-    top: 30px;
-    right: calc(50% + 34px);
-    width: calc(100% - 68px);
+    top: -18px;
+    right: auto;
+    left: 29px;
+    width: 0;
+    height: 18px;
+    border-top: none;
+    border-left: 6px dotted #f2b8c6;
   }
 }
 </style>

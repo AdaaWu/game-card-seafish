@@ -27,10 +27,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <div v-if="src" class="opening" role="dialog" aria-label="開場影片">
-    <video class="video" :src="src" autoplay muted playsinline @ended="finish" @error="finish" />
-    <button class="skip btn ghost" type="button" @click="finish">跳過</button>
-  </div>
+  <!-- 移到 body 層級，蓋過 App 的設定齒輪 -->
+  <Teleport to="body">
+    <div v-if="src" class="opening" role="dialog" aria-label="開場影片">
+      <video class="video" :src="src" autoplay muted playsinline @ended="finish" @error="finish" />
+      <button class="skip btn ghost" type="button" @click="finish">跳過</button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
