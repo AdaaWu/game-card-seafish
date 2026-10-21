@@ -54,7 +54,7 @@ const SceneTitle = () => {
   return (
     <SceneFade duration={S1}>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', top: -60 }}>
-        <div style={{ transform: `scale(${0.8 + 0.2 * pop}) translateY(${Math.sin(frame / 30) * 6}px)`, opacity: pop }}>
+        <div style={{ transform: `scale(${0.8 + 0.2 * pop})`, opacity: pop }}>
           <TitleText text="暖光礁" size={190} />
         </div>
         <div
@@ -120,13 +120,13 @@ const SceneOffice = () => {
             fontSize: 68,
             fontWeight: 800,
             color: COLOR.ink,
-            transform: `scale(${1 + ring * 0.12}) rotate(${Math.sin(frame) * ring * 3}deg)`,
+            transform: `scale(${1 + ring * 0.12})`,
           }}
         >
           {time}
         </div>
         <div style={{ position: 'absolute', left: 340, top: 640, width: 1240, height: 34, borderRadius: 17, background: '#e8cfc0' }} />
-        <Character id="xiaoye" size={480} delay={6} float={8} style={{ left: 720 + slide, top: 230 }} />
+        <Character id="xiaoye" size={480} delay={6} style={{ left: 720 + slide, top: 230 }} />
         <Caption text="我是小葉，在光合事務所當行政" from={10} to={110} />
         <Caption text="今天的目標，一樣是準時下班" from={115} to={S2 - 4} />
       </AbsoluteFill>
@@ -137,7 +137,6 @@ const SceneOffice = () => {
 // ③ 珊瑚白化
 const SceneBleach = () => {
   const frame = useCurrentFrame()
-  const shiver = Math.sin(frame / 3) * interpolate(frame, [90, 120, 160], [0, 3, 0], clamp)
   return (
     <SceneFade duration={S3}>
       <AbsoluteFill>
@@ -145,9 +144,9 @@ const SceneBleach = () => {
           id="xiaoye"
           size={420}
           delay={4}
-          float={5}
+         
           grayscale={interpolate(frame, [30, 150], [0, 0.6], clamp)}
-          style={{ left: 750 + shiver, top: 260 }}
+          style={{ left: 750, top: 260 }}
         />
         <Caption text="可是，珊瑚一天比一天白" from={8} to={100} />
         <Caption text="連小葉的葉子，也失去了顏色" from={105} to={S3 - 4} />
@@ -203,7 +202,7 @@ const FactionCard = ({
           transform: `scale(${0.7 + 0.3 * enter})`,
         }}
       />
-      <Character id={id} size={540} float={10} style={{ left: 270, top: 200 }} />
+      <Character id={id} size={540} style={{ left: 270, top: 200 }} />
       <div style={{ position: 'absolute', left: 900, top: 330, transform: `translateX(${(1 - enter) * 60}px)` }}>
         <div
           style={{
@@ -235,7 +234,7 @@ const SceneDepart = () => {
   const { fps } = useVideoConfig()
   const swim = interpolate(frame, [0, 110], [-200, 360], { ...clamp, easing: (t) => 1 - (1 - t) ** 3 })
   const title = spring({ frame: frame - 100, fps, config: { damping: 14, stiffness: 70 } })
-  const tap = interpolate(frame, [150, 170], [0, 1], clamp) * (0.8 + 0.2 * Math.sin(frame / 8))
+  const tap = interpolate(frame, [150, 170], [0, 1], clamp)
   const cards = ['leaf-001', 'tide-001', 'frost-001', 'light-001']
   return (
     <SceneFade duration={S5 + 18}>
@@ -251,14 +250,14 @@ const SceneDepart = () => {
                 width: 260,
                 height: 260,
                 left: 1080 + i * 180,
-                top: 500 + Math.sin(frame / 25 + i) * 10 + (i % 2) * 40,
+                top: 500 + (i % 2) * 40,
                 opacity: pop * 0.9,
                 transform: `scale(${0.5 + 0.5 * pop}) rotate(${(i - 1.5) * 8}deg)`,
               }}
             />
           )
         })}
-        <Character id="xiaoye" size={420} float={12} style={{ left: swim, top: 520 }} />
+        <Character id="xiaoye" size={420} style={{ left: swim, top: 520 }} />
         <AbsoluteFill style={{ alignItems: 'center', top: 150 }}>
           <div style={{ opacity: title, transform: `scale(${0.85 + 0.15 * title})` }}>
             <TitleText text="海蛞蝓卡牌對戰" size={150} />

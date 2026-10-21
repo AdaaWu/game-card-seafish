@@ -24,11 +24,9 @@ export const Ocean = ({ gray = 0, warm = 0 }: { gray?: number; warm?: number }) 
 }
 
 const LightRays = ({ gray }: { gray: number }) => {
-  const frame = useCurrentFrame()
   return (
     <AbsoluteFill style={{ opacity: 0.35 * (1 - gray * 0.6) }}>
       {[0, 1, 2, 3, 4].map((i) => {
-        const sway = Math.sin(frame / 70 + i) * 4
         return (
           <div
             key={i}
@@ -39,7 +37,7 @@ const LightRays = ({ gray }: { gray: number }) => {
               width: 140,
               height: 1500,
               background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0))',
-              transform: `rotate(${12 + sway}deg)`,
+              transform: 'rotate(12deg)',
               transformOrigin: 'top center',
               filter: 'blur(18px)',
             }}
@@ -85,7 +83,6 @@ export const Bubbles = ({ count = 26, seed = 'b' }: { count?: number; seed?: str
 
 // 底部的珊瑚叢，gray 為白化程度
 export const Reef = ({ gray = 0 }: { gray?: number }) => {
-  const frame = useCurrentFrame()
   const corals = [
     { x: 60, h: 300, c: '#f4a7b9' },
     { x: 330, h: 220, c: '#f8c89a' },
@@ -99,10 +96,9 @@ export const Reef = ({ gray = 0 }: { gray?: number }) => {
       <svg width={1920} height={1080} style={{ position: 'absolute', inset: 0 }}>
         <ellipse cx={960} cy={1130} rx={1200} ry={150} fill={mix('#e8d8c4', '#d9d9d9', gray)} />
         {corals.map((c, i) => {
-          const sway = Math.sin(frame / 40 + i) * 3
           const fill = mix(c.c, '#f2f2f0', gray)
           return (
-            <g key={i} transform={`translate(${c.x + 90}, 1060) rotate(${sway})`}>
+            <g key={i} transform={`translate(${c.x + 90}, 1060)`}>
               <Coral h={c.h} fill={fill} />
             </g>
           )
@@ -131,26 +127,23 @@ const Coral = ({ h, fill }: { h: number; fill: string }) => {
   )
 }
 
-// 角色頭像，帶漂浮與彈出
+// 角色頭像，彈出後靜止
 export const Character = ({
   id,
   size,
   delay = 0,
   style,
-  float = 14,
   grayscale = 0,
 }: {
   id: string
   size: number
   delay?: number
   style?: CSSProperties
-  float?: number
   grayscale?: number
 }) => {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   const pop = spring({ frame: frame - delay, fps, config: { damping: 14, stiffness: 90, mass: 0.9 } })
-  const bob = Math.sin((frame - delay) / 22) * float
   return (
     <Img
       src={staticFile(`portraits/${id}.png`)}
@@ -158,7 +151,7 @@ export const Character = ({
         position: 'absolute',
         width: size,
         height: size,
-        transform: `translateY(${bob}px) scale(${0.6 + 0.4 * pop})`,
+        transform: `scale(${0.6 + 0.4 * pop})`,
         opacity: pop,
         filter: `drop-shadow(0 18px 24px rgba(70,60,100,0.25)) grayscale(${grayscale})`,
         ...style,
