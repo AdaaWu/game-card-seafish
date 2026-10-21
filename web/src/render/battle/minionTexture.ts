@@ -3,8 +3,12 @@ import * as THREE from 'three'
 import type { Card } from '@/content/types'
 import { FACTION_STYLE, KEYWORDS, SHAPES, attackTone, healthTone, type IconDef, type StatTone } from '@/content/cardStyle'
 
-export const MINION_TEX_W = 256
-export const MINION_TEX_H = 320
+// 繪製座標維持 256×320，貼圖放大 1.5 倍供高 DPR 螢幕使用
+const DRAW_W = 256
+const DRAW_H = 320
+const TEX_SCALE = 1.5
+export const MINION_TEX_W = DRAW_W * TEX_SCALE
+export const MINION_TEX_H = DRAW_H * TEX_SCALE
 
 export interface MinionLook {
   attack: number
@@ -79,7 +83,8 @@ function number(ctx: CanvasRenderingContext2D, n: number, cx: number, cy: number
 export function drawMinion(ctx: CanvasRenderingContext2D, card: Card, look: MinionLook, image: HTMLImageElement | null) {
   const f = FACTION_STYLE[card.faction]
   const taunt = look.keywords.includes('taunt')
-  ctx.clearRect(0, 0, MINION_TEX_W, MINION_TEX_H)
+  ctx.setTransform(TEX_SCALE, 0, 0, TEX_SCALE, 0, 0)
+  ctx.clearRect(0, 0, DRAW_W, DRAW_H)
   const frame = framePath(taunt)
   const bg = ctx.createRadialGradient(128, 130, 10, 128, 150, 150)
   bg.addColorStop(0, '#FFFFFF')
