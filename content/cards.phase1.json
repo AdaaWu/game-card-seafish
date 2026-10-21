@@ -284,7 +284,7 @@
     },
     {
       "id": "leaf-012",
-      "name": "光合事務所‧小葉",
+      "name": "海草原儒艮",
       "faction": "leaf",
       "type": "creature",
       "cost": 7,
@@ -308,9 +308,9 @@
         }
       ],
       "text": "上場：為你的英雄回復 6 點生命。回合結束時：使所有友方生物 +1/+1",
-      "flavor": "「說好準時下班的……好啦，這次我來。」",
-      "species": "綠葉海天牛（葉羊）",
-      "artHint": "chibi leaf sheep sea slug xiaoye, creamy white body, purple bunny-ear rhinophores, green leaves with pink tips glowing, laptop under arm, determined rhinophores, sunlight burst",
+      "flavor": "她游過的海床，隔天就冒出一片新芽",
+      "species": "儒艮",
+      "artHint": "chibi dugong, soft sage-green round body, seagrass crown, cradling glowing sprouts, seagrass meadow blooming around, warm sunbeams, gentle healing glow",
       "collectible": true,
       "phase": 1
     },
@@ -535,7 +535,7 @@
     },
     {
       "id": "tide-010",
-      "name": "快遞員‧殼殼",
+      "name": "飛魚報信者",
       "faction": "tide",
       "type": "creature",
       "cost": 5,
@@ -552,15 +552,15 @@
         }
       ],
       "text": "上場：抽 2 張牌",
-      "flavor": "「這包是你的……吧？順著洋流送的，應該沒錯！」",
-      "species": "寄居蟹",
-      "artHint": "chibi hermit crab keke, coral-pink shell with tide-wave sticker, oversized courier bag, tiny delivery cap, handing over parcels, cheerful",
+      "flavor": "飛過浪頭一趟，帶回兩個好消息",
+      "species": "飛魚",
+      "artHint": "chibi flying fish, pastel sky-blue body, wing fins spread gliding over wave crest, two tiny message bottles, sea spray, cheerful",
       "collectible": true,
       "phase": 1
     },
     {
       "id": "tide-011",
-      "name": "巡潮員‧阿漂",
+      "name": "泡泡白鯨",
       "faction": "tide",
       "type": "creature",
       "cost": 4,
@@ -578,15 +578,15 @@
         }
       ],
       "text": "守護。上場：將一個敵方生物彈回擁有者手牌",
-      "flavor": "「逆流游泳是違規的，請回去重新排隊。」",
-      "species": "海馬",
-      "artHint": "chibi seahorse apiao, pale aqua with light-blue stripes, tail holding whistle, patrol sash, stiff upright salute",
+      "flavor": "噗一口泡泡，擋路的大家都回到原點",
+      "species": "白鯨",
+      "artHint": "chibi beluga whale, pearly white round body, guarding pose, blowing big bubble ring, pushing a tiny creature back on swirling current",
       "collectible": true,
       "phase": 1
     },
     {
       "id": "tide-012",
-      "name": "郵局局長‧波波",
+      "name": "浪潮座頭鯨",
       "faction": "tide",
       "type": "creature",
       "cost": 8,
@@ -602,9 +602,9 @@
         }
       ],
       "text": "上場：將所有敵方生物彈回擁有者手牌",
-      "flavor": "「洋流我來改道，大家先回家，剩下的我扛。」",
-      "species": "海兔",
-      "artHint": "chibi sea hare bobo, lilac-to-blue gradient, curly rhinophores, postman cap, seaweed mailbag, redirecting huge current with both arms",
+      "flavor": "尾巴一拍，整片海都回到退潮前",
+      "species": "座頭鯨",
+      "artHint": "chibi humpback whale, pastel navy-to-aqua body, giant tail fluke slapping sea, enormous curling wave sweeping creatures away, foam sparkles",
       "collectible": true,
       "phase": 1
     },
@@ -825,7 +825,7 @@
     },
     {
       "id": "frost-010",
-      "name": "冰窖管理員‧冰糖",
+      "name": "冰角獨角鯨",
       "faction": "frost",
       "type": "creature",
       "cost": 6,
@@ -841,15 +841,15 @@
         }
       ],
       "text": "上場：冰凍所有敵方生物",
-      "flavor": "「冷泉不能停……再加班一下下就好……zzz」",
-      "species": "白雪海牛",
-      "artHint": "chibi white nudibranch bingtang, sugar-crystal pale-blue frills, drooping sleepy rhinophores, pastel blue blanket, holding candy, ice cellar door",
+      "flavor": "長角往海面輕輕一點，整片海都結霜了",
+      "species": "獨角鯨",
+      "artHint": "chibi narwhal, frosty pale-blue body, crystal ice horn glowing, tapping ice sheet, frost rings spreading, snowflakes",
       "collectible": true,
       "phase": 1
     },
     {
       "id": "frost-011",
-      "name": "深谷守門‧凜凜",
+      "name": "滑冰企鵝隊長",
       "faction": "frost",
       "type": "creature",
       "cost": 4,
@@ -867,15 +867,15 @@
         }
       ],
       "text": "守護。上場：冰凍一個敵方生物",
-      "flavor": "「師父說不能讓人過去，我一個人也擋得住！」",
-      "species": "冰海天使（Clione）",
-      "artHint": "chibi sea angel linlin, translucent icy-white body, orange heart glow, snowflake hairclip, wing fins spread blocking path, competitive pout",
+      "flavor": "張開翅膀擋在前面，順便冰你一下",
+      "species": "阿德利企鵝",
+      "artHint": "chibi adelie penguin, round black-and-white body, tiny frosty captain armband, flippers spread blocking path, ice skating spray, snowflakes",
       "collectible": true,
       "phase": 1
     },
     {
       "id": "frost-012",
-      "name": "冷泉長老‧凍凍婆婆",
+      "name": "冰洋弓頭鯨",
       "faction": "frost",
       "type": "creature",
       "cost": 8,
@@ -899,9 +899,9 @@
         }
       ],
       "text": "守護。上場：對所有敵方生物造成 1 點傷害並冰凍",
-      "flavor": "「哼，礁石燒成這樣，不冰一冰怎麼行。」",
-      "species": "雪花海星",
-      "artHint": "chibi five-armed sea star dongdong, frosty white with ice crystal patterns, knitted pastel scarf, ice cane raised, cold spring swirling",
+      "flavor": "從冰層底下浮上來時，連海都打了個寒顫",
+      "species": "弓頭鯨",
+      "artHint": "chibi bowhead whale, massive frosty white-blue body, breaching through cracked ice floe, icy shockwave spreading, snow flurry, calm majestic",
       "collectible": true,
       "phase": 1
     },
@@ -1145,7 +1145,7 @@
     },
     {
       "id": "light-011",
-      "name": "舞台總監‧閃閃",
+      "name": "指揮家海筆",
       "faction": "light",
       "type": "creature",
       "cost": 5,
@@ -1163,15 +1163,15 @@
         }
       ],
       "text": "上場：召喚 2 個「光點水母」",
-      "flavor": "「燈光就位、舞者就位，照排班表，開演！」",
-      "species": "螢火魷",
-      "artHint": "chibi firefly squid shanshan, deep indigo body, glowing blue dots, headset mic, clipboard schedule, nervous tentacles cueing tiny glowing jellies",
+      "flavor": "揮一揮，小水母就一顆一顆亮起來",
+      "species": "海筆（發光軟珊瑚）",
+      "artHint": "chibi glowing sea pen, feather-shaped soft coral body, golden glow, swaying like conductor baton, two tiny glowing jellies popping up, sparkle music notes",
       "collectible": true,
       "phase": 1
     },
     {
       "id": "light-012",
-      "name": "星光歌姬‧啾啾",
+      "name": "金光鬼蝠魟",
       "faction": "light",
       "type": "creature",
       "cost": 7,
@@ -1191,9 +1191,9 @@
         }
       ],
       "text": "泡泡盾。上場：使所有友方生物 +2/+1",
-      "flavor": "「大家看我這裡！今晚也要唱到最後一首！」",
-      "species": "海月水母",
-      "artHint": "chibi moon jellyfish jiujiu, pink-purple star dots, clover pattern, ribbon tentacles, tiny microphone, spotlight, singing on stage",
+      "flavor": "展開雙翼的那一刻，大家都被照亮了",
+      "species": "鬼蝠魟",
+      "artHint": "chibi manta ray, pastel gold-and-cream wings spread wide, shimmering bubble shield, radiant golden rays over friends, sparkles",
       "collectible": true,
       "phase": 1
     },
@@ -1280,7 +1280,7 @@
     },
     {
       "id": "neutral-005",
-      "name": "營運部長‧鮟部長",
+      "name": "深海皇帶魚",
       "faction": "neutral",
       "type": "creature",
       "cost": 7,
@@ -1303,9 +1303,9 @@
         }
       ],
       "text": "上場：抽 1 張牌。回合結束時：對所有敵方生物造成 1 點傷害",
-      "flavor": "「24 小時不熄燈，KPI 才會亮。」",
-      "species": "燈籠鮟鱇",
-      "artHint": "chibi anglerfish anbuzhang, navy-purple round body, warm-yellow lantern lure blazing, round glasses, necktie, KPI clipboard, serious not scary",
+      "flavor": "傳說牠一浮上來，海面就會起風浪",
+      "species": "皇帶魚",
+      "artHint": "chibi oarfish, long silver ribbon body, soft crimson crest fin, coiling through deep blue water, rippling shockwave rings, mysterious sparkles",
       "collectible": true,
       "phase": 1
     },
