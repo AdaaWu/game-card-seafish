@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.local.md
+.vscode/
+.idea/
+
+# Remotion 過場影片
+cinematics/node_modules/
+cinematics/out/
+cinematics/public/
