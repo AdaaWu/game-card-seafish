@@ -109,7 +109,7 @@ function laneTexture(): THREE.CanvasTexture {
   const ctx = c.getContext('2d')!
   ctx.scale(1, h / w)
   const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2)
-  g.addColorStop(0, 'rgba(242,250,251,0.16)')
+  g.addColorStop(0, 'rgba(242,250,251,0.22)')
   g.addColorStop(0.6, 'rgba(242,250,251,0.12)')
   g.addColorStop(1, 'rgba(242,250,251,0)')
   ctx.fillStyle = g
@@ -243,13 +243,13 @@ export class Battlefield {
     this.disposables.push(iceTex, bubbleTex, spotTex)
 
     // 柔和光斑
-    const spotMat = new THREE.SpriteMaterial({ map: spotTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.2 })
+    const spotMat = new THREE.SpriteMaterial({ map: spotTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.08 })
     this.disposables.push(spotMat)
     for (let i = 0; i < 5; i++) {
       const s = new THREE.Sprite(spotMat)
       const size = 6 + i * 1.5
       s.scale.set(size, size, 1)
-      s.position.set(-11 + i * 5.5, 5 - (i % 2) * 7, -6)
+      s.position.set(-11 + i * 5.5, 5 - (i % 2) * 7, -10)
       s.userData.phase = i * 1.3
       this.spots.push(s)
       this.scene.add(s)
@@ -423,7 +423,7 @@ export class Battlefield {
     pos.needsUpdate = true
     for (const s of this.spots) {
       const p = s.userData.phase as number
-      s.material.opacity = 0.14 + 0.06 * Math.sin(t * 0.4 + p)
+      s.material.opacity = 0.08 + 0.03 * Math.sin(t * 0.4 + p)
       s.position.x += Math.sin(t * 0.1 + p) * 0.002
     }
     this.renderer.render(this.scene, this.camera)

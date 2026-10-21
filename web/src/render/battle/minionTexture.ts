@@ -105,7 +105,7 @@ export function drawMinion(ctx: CanvasRenderingContext2D, card: Card, look: Mini
     drawIcon(ctx, f.icon, 78, 90, 100, f.dark)
   }
   ctx.lineWidth = taunt ? 14 : 10
-  ctx.strokeStyle = taunt ? '#8C7A5B' : f.dark
+  ctx.strokeStyle = taunt ? '#6E5F80' : f.dark
   ctx.stroke(frame)
 
   // 關鍵字圖示：最多 4 個，超過顯示 +N
