@@ -185,7 +185,14 @@ export class Battlefield {
   private readonly ringGeo = new THREE.RingGeometry(0.92, 1.04, 48)
   private readonly iceGeo = new THREE.PlaneGeometry(MINION_W * 1.08, MINION_H * 1.02)
   private readonly bubbleGeo = new THREE.PlaneGeometry(MINION_W * 1.35, MINION_H * 1.2)
-  private readonly readyMat = new THREE.MeshBasicMaterial({ color: 0x7fd88f, transparent: true, opacity: 0.85, depthWrite: false })
+  // 可攻擊：腳下柔光
+  private readonly readyGeo = new THREE.PlaneGeometry(1, 1)
+  private readonly readyMat = new THREE.MeshBasicMaterial({
+    map: radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'),
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+  })
   private readonly highlightMat = new THREE.MeshBasicMaterial({ color: 0xf6e3a1, transparent: true, opacity: 0.9, depthWrite: false })
   private readonly selectedMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1, depthWrite: false })
   private readonly iceMat: THREE.MeshBasicMaterial
@@ -316,6 +323,8 @@ export class Battlefield {
       this.ringGeo,
       this.iceGeo,
       this.bubbleGeo,
+      this.readyGeo,
+      this.readyMat.map!,
       this.readyMat,
       this.highlightMat,
       this.selectedMat,
@@ -413,6 +422,7 @@ export class Battlefield {
     const dt = Math.min(this.timer.getDelta(), 0.1)
     const t = this.timer.getElapsed()
     this.highlightMat.opacity = 0.6 + 0.35 * Math.sin(t * ((2 * Math.PI) / 1.2))
+    if (!this.reducedMotion) this.readyMat.opacity = 0.8 + 0.2 * Math.sin(t * ((2 * Math.PI) / 1.6))
     const pos = this.bubbles.geometry.getAttribute('position') as THREE.BufferAttribute
     const arr = pos.array as Float32Array
     for (let i = 0; i < BUBBLE_COUNT; i++) {
@@ -516,9 +526,9 @@ export class Battlefield {
     const card = new THREE.Mesh(this.cardGeo, new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false }))
     card.userData.instanceId = vm.instanceId
     card.renderOrder = 10
-    const ready = new THREE.Mesh(this.ringGeo, this.readyMat)
-    ready.scale.set(MINION_W * 0.58, MINION_H * 0.55, 1)
-    ready.position.z = -0.02
+    const ready = new THREE.Mesh(this.readyGeo, this.readyMat)
+    ready.scale.set(MINION_W * 1.2, MINION_H * 0.36, 1)
+    ready.position.set(0, -MINION_H * 0.5, -0.02)
     ready.visible = false
     const highlight = new THREE.Mesh(this.ringGeo, this.highlightMat)
     highlight.scale.set(MINION_W * 0.64, MINION_H * 0.6, 1)
