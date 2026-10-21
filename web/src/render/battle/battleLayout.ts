@@ -113,7 +113,7 @@ export function computeLayout(w: number, h: number): BattleLayout {
   const arrangement: 'side' | 'stack' = lw < 1700 ? 'stack' : 'side'
   const cx = lw / 2
   const mh = Math.max(32, 12 * cssPx)
-  const mv = Math.max(20, 10 * cssPx)
+  const mv = Math.max(28, 10 * cssPx)
 
   // 元件尺寸
   const portraitSize = Math.max(128, 52 * cssPx)

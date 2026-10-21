@@ -2,6 +2,7 @@
 // 對戰畫面：玩家（p1）對 AI（p2）；three.js 戰場＋DOM 疊層，事件依序播放動畫
 import gsap from 'gsap'
 import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
 import CardView from '@/components/CardView.vue'
 import { chooseAction, MAX_ACTIONS_PER_TURN } from '@/ai'
 import { characterByName, cardDb, tokens } from '@/content'
@@ -48,6 +49,7 @@ const EMPTY: ReadonlySet<string> = new Set<string>()
 
 const store = useBattleStore()
 const settings = useSettingsStore()
+const router = useRouter()
 const cards: Record<string, Card> = cardDb
 const enemyFaction = computed(() => characterByName(props.enemyName)?.faction ?? 'tide')
 const view = computed(() => store.view)
@@ -516,6 +518,21 @@ function onUp(e: PointerEvent): void {
   } else if (a) attackDrag.value = null
 }
 
+// 系統中斷指標時視同放回手牌
+function onCancel(): void {
+  const d = drag.value
+  if (d) {
+    drag.value = null
+    field?.showSeam(null)
+    if (d.active) audio.play('sfx_card_return')
+    return
+  }
+  if (attackDrag.value) {
+    attackDrag.value = null
+    cancelMode()
+  }
+}
+
 function onKey(e: KeyboardEvent): void {
   if (e.key === 'Escape') cancelMode()
   if (e.code === 'Space' && !e.repeat) {
@@ -674,6 +691,7 @@ onMounted(async () => {
   if (stageEl.value) resizeObserver.observe(stageEl.value)
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onCancel)
   window.addEventListener('keydown', onKey)
   const images = await preloadImages()
   if (disposed || !glEl.value) return
@@ -704,6 +722,7 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
   window.removeEventListener('pointermove', onMove)
   window.removeEventListener('pointerup', onUp)
+  window.removeEventListener('pointercancel', onCancel)
   window.removeEventListener('keydown', onKey)
   animator?.dispose()
   field?.dispose()
@@ -730,6 +749,7 @@ const uiStyle = computed(() => {
     <div v-if="portrait" class="rotate-hint" role="alert">
       <span class="rotate-icon" aria-hidden="true">⟳</span>
       請將裝置轉為橫向
+      <button class="btn rotate-back" type="button" data-testid="rotate-back" @click="router.push('/menu')">返回選單</button>
     </div>
     <div ref="stageEl" class="stage" :class="{ gray: fx.lowSaturation, hidden: portrait }">
       <div ref="glEl" class="gl" />
@@ -1152,6 +1172,12 @@ const uiStyle = computed(() => {
   background: var(--c-cream);
   font-size: 22px;
   font-weight: 800;
+}
+.rotate-back {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 24px;
+  font-size: 18px;
 }
 .rotate-icon {
   font-size: 56px;
