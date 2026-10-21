@@ -4,7 +4,7 @@
 
 ## 目前階段
 - 所有實作完成，單元測試 333 案綠、typecheck 綠、E2E battle-auto-end 3/3、battle-sandbox 2/2、battle-mobile 2/2
-- 分批 commit 進行中（本機已 6 個 commit，push 待完成），之後驗證 https://adaawu.github.io/game-card-seafish/
+- 已 push 21 個 commit（e75da6f..fde5f4b），Actions run 39666284981 成功，網址驗證 200、可進對戰
 
 ## 已完成
 - 自動結束回合（hasNoActions + BattleScreen 1 秒延遲與提示），code-reviewer 有條件通過，後續三項已修
@@ -15,7 +15,7 @@
 - 劇情立繪 64vh 無框、對話框不透明、直式只顯示說話者；翻面卡背；潮能水滴；場地柔邊；結算面板與按鈕對比
 
 ## 進行中
-- C10 commit 與 push（agent 分批中）；C07 push 後驗證網址
+- 無；本輪全部完成
 
 ## 待人類決定（都寫在對照頁與 audit）
 - 美術終審：docs/reviews/art-signoff-20261022.md 每組簽核欄為空，目前上線的是「建議變體」，變體仍在 assets/pending
