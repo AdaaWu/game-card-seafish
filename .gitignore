@@ -11,3 +11,14 @@ cinematics/out/
 cinematics/public/
 
 *.log
+
+# 美術待審批次：原圖與 png 備份不進版控，總覽與預覽圖例外
+assets/pending/**/_raw/
+assets/pending/**/*.png
+!assets/pending/**/contact-*.png
+!assets/pending/**/_preview/*.png
+# 超過 2MB 的總覽與預覽圖
+assets/pending/**/_preview/sim-*.png
+assets/pending/**/_preview/preview-*-sheet.png
+assets/pending/**/contact-battle-bg.png
+assets/pending/**/contact-card-frame.png
