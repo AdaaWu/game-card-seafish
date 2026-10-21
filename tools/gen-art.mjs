@@ -129,10 +129,10 @@ function collectJobs() {
   const characters = asList(readJson('content/story.json'), 'characters').filter((ch) => ch.id);
   const characterIds = characters.map((ch) => ch.id);
   for (const c of [...asList(cardData, 'cards'), ...asList(cardData, 'tokens')]) {
-    if (c.id) jobs.push(cardJob(c, 'assets/cards', characterIds));
+    if (c.id) jobs.push(cardJob(c, 'assets/_source/cards', characterIds));
   }
   for (const ch of characters) {
-    jobs.push(cardJob({ ...ch, artHint: ch.portraitHint, type: 'character' }, 'assets/portraits', characterIds));
+    jobs.push(cardJob({ ...ch, artHint: ch.portraitHint, type: 'character' }, 'assets/_source/portraits', characterIds));
   }
   return jobs;
 }
