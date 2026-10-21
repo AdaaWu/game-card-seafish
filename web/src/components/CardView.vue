@@ -3,12 +3,12 @@
 import { computed, ref, watch } from 'vue'
 import type { Card } from '@/content/types'
 import {
-  CARD_TYPE_LABEL,
   FACTION_STYLE,
   LAYOUT,
   RARITY_STYLE,
   SHAPES,
   cardArtUrl,
+  cardTypeLine,
   cardKeywords,
   framePatternPath,
   gemPoints,
@@ -134,7 +134,7 @@ const ariaLabel = computed(() => {
           </template>
         </p>
         <span class="type-label" :style="{ fontSize: u(LAYOUT.font.type) }">
-          {{ CARD_TYPE_LABEL[card.type] }}・{{ card.species }}
+          {{ cardTypeLine(card) }}
         </span>
       </div>
 

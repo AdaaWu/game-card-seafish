@@ -126,6 +126,13 @@ export const KEYWORDS: Record<string, KeywordInfo> = {
 
 export const CARD_TYPE_LABEL = { creature: '生物', spell: '法術' } as const
 
+// 卡面副標
+export function cardTypeLine(card: Pick<Card, 'type' | 'species'>): string {
+  const label = CARD_TYPE_LABEL[card.type]
+  const species = card.species.replace(new RegExp(`^（${label}）`), '')
+  return `${label}・${species}`
+}
+
 // 稀有度寶石頂點（圓形回傳 null）
 export function gemPoints(rarity: Rarity, cx: number, cy: number, r: number): [number, number][] | null {
   const sides = RARITY_STYLE[rarity].sides

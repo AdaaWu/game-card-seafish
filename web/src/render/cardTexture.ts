@@ -2,7 +2,6 @@
 import type { Card } from '@/content/types'
 import {
   CARD_H,
-  CARD_TYPE_LABEL,
   CARD_W,
   FACTION_STYLE,
   LAYOUT,
@@ -10,6 +9,7 @@ import {
   SHAPES,
   cardArtUrl,
   cardKeywords,
+  cardTypeLine,
   framePatternPath,
   gemPoints,
   nameFontSize,
@@ -158,7 +158,7 @@ function drawEffectText(ctx: CanvasRenderingContext2D, card: Card, box: { x: num
   ctx.font = `500 ${LAYOUT.font.type}px ${FONT_UI}`
   ctx.textAlign = 'center'
   ctx.fillStyle = '#6E6580'
-  ctx.fillText(`${CARD_TYPE_LABEL[card.type]}・${card.species}`, box.x + box.w / 2, box.y + box.h - 16)
+  ctx.fillText(cardTypeLine(card), box.x + box.w / 2, box.y + box.h - 16)
 }
 
 // 同步繪製卡面到 500×700 座標系；image 為 null 時畫陣營色塊與物種名
