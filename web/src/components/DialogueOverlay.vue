@@ -2,6 +2,8 @@
 // 劇情對話：逐字打字、點擊下一句、快轉、跳過、紀錄
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import CharacterPortrait from '@/components/CharacterPortrait.vue'
+import { characterByName } from '@/content'
+import { portraitUrl } from '@/content/cardStyle'
 import type { DialogueLine, Faction } from '@/content/types'
 import { audio } from '@/fx/audio'
 
@@ -28,6 +30,10 @@ const visibleText = computed(() => chars.value.slice(0, shown.value).join(''))
 const opponent = computed(() => props.lines.find((l) => l.speaker !== props.protagonist)?.speaker ?? '')
 const leftActive = computed(() => line.value?.speaker === props.protagonist)
 const history = computed(() => props.lines.slice(0, index.value + 1))
+// 對話用無框大立繪，缺圖時退回頭像
+const leftUrl = computed(() => portraitUrl(characterByName(props.protagonist)?.id))
+const rightUrl = computed(() => portraitUrl(characterByName(opponent.value)?.id))
+const failed = ref<Record<string, boolean>>({})
 
 function clearTimer() {
   if (timer) clearTimeout(timer)
@@ -130,10 +136,26 @@ onBeforeUnmount(() => {
 
     <div class="stage">
       <div class="side left" :class="{ dim: !leftActive }">
-        <CharacterPortrait :name="protagonist" :size="200" />
+        <img
+          v-if="leftUrl && !failed[protagonist]"
+          class="figure"
+          :src="leftUrl"
+          :alt="protagonist"
+          draggable="false"
+          @error="failed[protagonist] = true"
+        />
+        <CharacterPortrait v-else :name="protagonist" :size="200" />
       </div>
       <div v-if="opponent" class="side right" :class="{ dim: leftActive }">
-        <CharacterPortrait :name="opponent" :faction="opponentFaction" :size="200" />
+        <img
+          v-if="rightUrl && !failed[opponent]"
+          class="figure"
+          :src="rightUrl"
+          :alt="opponent"
+          draggable="false"
+          @error="failed[opponent] = true"
+        />
+        <CharacterPortrait v-else :name="opponent" :faction="opponentFaction" :size="200" />
       </div>
     </div>
 
@@ -171,7 +193,9 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: linear-gradient(180deg, rgba(62, 53, 80, 0.05), rgba(62, 53, 80, 0.35));
+  background: linear-gradient(180deg, rgba(62, 53, 80, 0.35), rgba(62, 53, 80, 0.6));
+  -webkit-backdrop-filter: blur(8px) saturate(0.8);
+  backdrop-filter: blur(8px) saturate(0.8);
   cursor: pointer;
   user-select: none;
 }
@@ -198,37 +222,61 @@ onBeforeUnmount(() => {
   background: var(--c-butter);
 }
 .stage {
+  --fig-h: 64vh;
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 210px;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 6vw;
+  inset: 0;
   pointer-events: none;
 }
 .side {
+  position: absolute;
+  bottom: 12vh;
+  bottom: 12dvh;
+  transform-origin: 50% 100%;
   transition:
     filter 0.2s,
     transform 0.2s;
 }
-.side.dim {
-  filter: brightness(0.6) saturate(0.7);
-  transform: scale(0.94);
+.side.left {
+  left: 4vw;
 }
 .side.right {
-  margin-left: auto;
+  right: 4vw;
+  z-index: 1;
+}
+.side:not(.dim) {
+  z-index: 2;
+}
+.side.dim {
+  filter: brightness(0.6) saturate(0.7);
+  transform: translateY(2%) scale(0.96);
+}
+.figure {
+  display: block;
+  height: var(--fig-h);
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 24px rgba(90, 78, 106, 0.2));
+}
+@supports (height: 1dvh) {
+  .stage {
+    --fig-h: 64dvh;
+  }
 }
 .box {
   position: absolute;
+  z-index: 1;
   left: 50%;
-  bottom: 24px;
+  bottom: 2vh;
   transform: translateX(-50%);
   width: min(960px, calc(100% - 32px));
-  min-height: 150px;
+  min-height: min(150px, 23vh);
+  max-height: 23vh;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   padding: 34px 32px 22px;
   border: 3px solid #fff;
+  background: #fbf6ec;
 }
 .speaker {
   position: absolute;
@@ -247,6 +295,8 @@ onBeforeUnmount(() => {
   background: #5e9fb0;
 }
 .text {
+  min-height: 0;
+  overflow-y: auto;
   margin: 0;
   font-size: 22px;
   line-height: 1.6;
@@ -306,16 +356,47 @@ onBeforeUnmount(() => {
   min-width: 4.5em;
   color: var(--c-lavender-deep);
 }
-@media (max-width: 720px) {
-  .stage {
-    bottom: 190px;
+@media (max-height: 500px) {
+  .box {
+    padding: 20px 24px 8px;
   }
+  .text {
+    font-size: 18px;
+    line-height: 1.5;
+  }
+}
+@media (max-width: 720px) {
   .stage :deep(.portrait) {
     width: 110px !important;
     height: 110px !important;
   }
   .text {
     font-size: 18px;
+  }
+}
+@media (orientation: portrait) {
+  .stage {
+    --fig-h: 50vh;
+  }
+  .side {
+    bottom: 16vh;
+  }
+  .side.left {
+    left: -8vw;
+  }
+  .side.right {
+    right: -8vw;
+  }
+  @supports (height: 1dvh) {
+    .stage {
+      --fig-h: 50dvh;
+    }
+  }
+}
+/* 手機直式只留說話者，避免兩張立繪重疊 */
+@media (orientation: portrait) and (max-width: 599px) {
+  .side.dim {
+    display: none;
   }
 }
 </style>
