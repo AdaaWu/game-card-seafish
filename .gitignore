@@ -9,3 +9,5 @@ dist/
 cinematics/node_modules/
 cinematics/out/
 cinematics/public/
+
+*.log
