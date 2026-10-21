@@ -632,7 +632,7 @@ async function onRetry(): Promise<void> {
   fx.banner = null
   fx.showcase = null
   fx.lowSaturation = false
-  const heroes = uiEl.value?.querySelectorAll('[data-hero] .portrait-wrap')
+  const heroes = uiEl.value?.querySelectorAll('[data-hero] .portrait-wrap, [data-hero] .hero-name')
   if (heroes?.length) gsap.set(heroes, { clearProps: 'all' })
   field?.reset()
   audio.playBgm(props.bgm)
@@ -947,17 +947,19 @@ const uiStyle = computed(() => {
   height: 100%;
   overflow: clip;
   border-radius: clamp(0px, 1.2dvh, 14px);
-  transition: filter 0.6s;
 }
 .stage.hidden {
   visibility: hidden;
 }
-.stage.gray {
+/* 降飽和只套畫面內容，結算層維持原色 */
+.stage.gray .gl,
+.stage.gray .ui > :not(.result) {
   filter: saturate(0.35);
 }
 .gl {
   position: absolute;
   inset: 0;
+  transition: filter 0.6s;
 }
 .ui {
   position: absolute;

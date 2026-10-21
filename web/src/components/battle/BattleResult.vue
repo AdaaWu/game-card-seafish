@@ -35,15 +35,17 @@ onUnmounted(() => clearTimeout(timer))
         :style="{ left: p.left, animationDelay: p.delay, background: p.hue, width: p.size, height: p.size }"
       />
     </div>
-    <h2 ref="title">{{ result === 'win' ? '勝利！' : result === 'lose' ? '再試一次' : '平手' }}</h2>
-    <p v-if="result === 'lose'" class="sub">海流有點急，深呼吸再出發吧</p>
-    <p class="rounds" data-testid="result-rounds">回合數 {{ rounds }}</p>
-    <div v-if="showButton" class="actions">
-      <template v-if="result === 'lose'">
-        <button class="btn" type="button" data-testid="retry" @click="$emit('retry')">重新挑戰</button>
-        <button class="btn ghost" type="button" data-testid="back-map" @click="$emit('continue')">{{ exitLabel }}</button>
-      </template>
-      <button v-else class="btn" type="button" @click="$emit('continue')">繼續</button>
+    <div class="panel">
+      <h2 ref="title">{{ result === 'win' ? '勝利！' : result === 'lose' ? '再試一次' : '平手' }}</h2>
+      <p v-if="result === 'lose'" class="sub">海流有點急，深呼吸再出發吧</p>
+      <p class="rounds" data-testid="result-rounds">回合數 {{ rounds }}</p>
+      <div v-if="showButton" class="actions">
+        <template v-if="result === 'lose'">
+          <button class="btn" type="button" data-testid="retry" @click="$emit('retry')">重新挑戰</button>
+          <button class="btn ghost" type="button" data-testid="back-map" @click="$emit('continue')">{{ exitLabel }}</button>
+        </template>
+        <button v-else class="btn" type="button" @click="$emit('continue')">繼續</button>
+      </div>
     </div>
   </div>
 </template>
@@ -57,9 +59,20 @@ onUnmounted(() => clearTimeout(timer))
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  background: rgba(251, 246, 236, 0.45);
+  background: rgba(62, 53, 80, 0.35);
+  backdrop-filter: blur(6px);
   overflow: hidden;
+}
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 40px 72px;
+  border-radius: 40px;
+  background: rgba(251, 246, 236, 0.94);
+  box-shadow: var(--shadow);
 }
 h2 {
   margin: 0;
@@ -71,7 +84,7 @@ h2 {
   text-shadow: 0 8px 0 rgba(62, 53, 80, 0.2);
 }
 .lose h2 {
-  -webkit-text-stroke-color: var(--c-ink-soft);
+  -webkit-text-stroke-color: #6e5f80;
 }
 .sub,
 .rounds {

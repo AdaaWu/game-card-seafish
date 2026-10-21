@@ -326,8 +326,9 @@ export function createBattleStage(deps: StageDeps): AnimationStage {
         if (loser && field) {
           const at = targetPoint(`${loser}-hero`)
           if (at) tl.add(field.tlFinalPush(field.logicalToWorld(at.x, at.y)), 0)
-          const el = q(`[data-hero="${loser}"] .portrait-wrap`)
-          if (el) {
+          // 頭像與名牌一起淡出
+          const el = deps.root()?.querySelectorAll(`[data-hero="${loser}"] .portrait-wrap, [data-hero="${loser}"] .hero-name`)
+          if (el?.length) {
             tl.to(el, { x: 4, duration: 0.05, repeat: 5, yoyo: true }, 0.3)
             tl.to(el, { scale: 1.25, opacity: 0, filter: 'blur(4px)', duration: 1, ease: 'power2.in' }, 0.6)
           }
