@@ -339,11 +339,9 @@ header p {
 @keyframes glow {
   0%,
   100% {
-    transform: translateY(0);
     box-shadow: 0 0 0 0 rgba(246, 227, 161, 0.9);
   }
   50% {
-    transform: translateY(-6px);
     box-shadow: 0 0 0 10px rgba(246, 227, 161, 0.4);
   }
 }

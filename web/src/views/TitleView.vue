@@ -50,7 +50,6 @@ onMounted(() => document.querySelector<HTMLElement>('.title-page')?.focus())
 .hero {
   width: min(260px, 50vw);
   filter: drop-shadow(0 10px 18px rgba(62, 53, 80, 0.18));
-  animation: float 3s ease-in-out infinite;
 }
 h1 {
   margin: 0;
@@ -71,11 +70,6 @@ h1 {
   font-size: 20px;
   font-weight: 800;
   animation: pulse 1.6s ease-in-out infinite;
-}
-@keyframes float {
-  50% {
-    transform: translateY(-10px);
-  }
 }
 @keyframes pulse {
   50% {

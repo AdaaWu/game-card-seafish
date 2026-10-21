@@ -256,12 +256,6 @@ onBeforeUnmount(() => {
   margin-left: 6px;
   font-size: 14px;
   color: var(--c-lavender-deep);
-  animation: bob 0.9s ease-in-out infinite;
-}
-@keyframes bob {
-  50% {
-    transform: translateY(3px);
-  }
 }
 .modal-backdrop {
   position: absolute;
