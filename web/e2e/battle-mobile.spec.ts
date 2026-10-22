@@ -95,6 +95,20 @@ test('直式 390×844 可出牌、可攻擊、可結束回合', async ({ page })
   expect(errors).toEqual([])
 })
 
+test('極小螢幕 300×600 顯示轉向提示，返回選單按鈕可點', async ({ page }) => {
+  await page.setViewportSize({ width: 300, height: 600 })
+  await page.goto(SANDBOX)
+  await page.getByTestId('seed').fill('8')
+  await page.getByTestId('opponent-ai-tide').click()
+  const back = page.getByTestId('rotate-back')
+  await expect(back).toBeVisible()
+  const box = await back.boundingBox()
+  expect(box?.width).toBeGreaterThanOrEqual(44)
+  expect(box?.height).toBeGreaterThanOrEqual(44)
+  await back.click()
+  await expect(page).toHaveURL(/#\/menu$/)
+})
+
 test('拖曳手牌時收到 pointercancel 會放回手牌', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto(SANDBOX)
