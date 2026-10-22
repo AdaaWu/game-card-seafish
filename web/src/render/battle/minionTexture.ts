@@ -2,7 +2,7 @@
 import * as THREE from 'three'
 import type { Card, Faction } from '@/content/types'
 import { FACTION_STYLE, KEYWORDS, uiImageUrl, type IconDef } from '@/content/cardStyle'
-import { alphaBounds, loadImage } from '@/render/cardTexture'
+import { alphaBounds, loadCardFonts, loadImage } from '@/render/cardTexture'
 import {
   MINION_CANVAS,
   OVERLAY_SLICES,
@@ -19,7 +19,7 @@ import {
 export type SliceImages = Map<string, HTMLImageElement | null>
 
 const FACTIONS: Faction[] = ['leaf', 'tide', 'frost', 'light', 'neutral']
-const FONT_NUM = '"M PLUS Rounded 1c", "Baloo 2", "Noto Sans TC", sans-serif'
+const FONT_NUM = '"SeafishDigit", "SeafishRound", "Noto Sans TC", sans-serif'
 const INK = '#3E3550'
 
 // 攻血貼圖只取畫布下緣這一段（2 倍畫布座標）
@@ -44,12 +44,13 @@ export function minionSlicePaths(): string[] {
 // 切片以 @2x 預載一次，載入失敗記為 null
 export async function loadMinionSlices(): Promise<SliceImages> {
   const map: SliceImages = new Map()
-  await Promise.all(
-    minionSlicePaths().map(async (p) => {
+  await Promise.all([
+    loadCardFonts(),
+    ...minionSlicePaths().map(async (p) => {
       const url = uiImageUrl(p, true)
       map.set(p, url ? await loadImage(url) : null)
     }),
-  )
+  ])
   return map
 }
 
