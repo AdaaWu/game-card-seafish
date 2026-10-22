@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 import CharacterPortrait from '@/components/CharacterPortrait.vue'
 import { assetUrls } from '@/content/assetUrls'
+import { uiImageUrl } from '@/content/cardStyle'
 import type { Faction, PlayerId } from '@/engine'
 import { displayHp } from '@/render/battle/viewModel'
 
@@ -22,6 +23,8 @@ defineEmits<{ pick: [] }>()
 
 const shownHp = computed(() => displayHp(props.hp))
 const url = computed(() => (props.portraitId ? (assetUrls[`portraits/${props.portraitId}.png`] ?? null) : null))
+const plate = uiImageUrl('panels/nameplate', true)
+const plateVar = plate ? `url("${plate}")` : 'none'
 </script>
 
 <template>
@@ -29,7 +32,7 @@ const url = computed(() => (props.portraitId ? (assetUrls[`portraits/${props.por
     class="hero"
     :class="[pid, { targetable, dimmed }]"
     :data-hero="pid"
-    :style="{ '--p': `${size}px`, '--name': `${nameFont}px` }"
+    :style="{ '--p': `${size}px`, '--name': `${nameFont}px`, '--plate': plateVar }"
     @pointerdown.stop="$emit('pick')"
   >
     <div class="portrait-wrap">
@@ -142,13 +145,22 @@ img.portrait {
   -webkit-text-stroke: 2px var(--c-ink);
   paint-order: stroke fill;
 }
+/* 名牌九宮格：左端貝殼與右端圓角不拉伸 */
 .hero-name {
-  padding: 0 0.6em;
-  border-radius: 999px;
-  background: rgba(255, 253, 247, 0.92);
-  box-shadow: 0 2px 6px rgba(62, 53, 80, 0.15);
+  --nh: calc(var(--name) * 1.6);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: var(--nh);
+  padding: 0 0.15em calc(var(--nh) * 0.06);
+  border-style: solid;
+  border-width: 0 calc(var(--nh) * 0.5) 0 calc(var(--nh) * 0.77);
+  border-image-source: var(--plate);
+  border-image-slice: 0 52 0 80 fill;
+  border-image-width: 0 calc(var(--nh) * 0.5) 0 calc(var(--nh) * 0.77);
+  border-image-repeat: stretch;
   font-size: var(--name);
-  line-height: 1.3;
+  line-height: 1;
   font-weight: 800;
   color: var(--c-ink);
   white-space: nowrap;
