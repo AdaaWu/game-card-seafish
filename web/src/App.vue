@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SettingsDialog from '@/components/SettingsDialog.vue'
+import BubbleLayer from '@/components/ui/BubbleLayer.vue'
+import ScreenBackground from '@/components/ui/ScreenBackground.vue'
+import { screenForRoute } from '@/components/ui/screenBackground'
 import { audio } from '@/fx/audio'
 import { useProgressStore } from '@/stores/progress'
 
@@ -9,6 +12,7 @@ const route = useRoute()
 const router = useRouter()
 const progress = useProgressStore()
 const showSettings = ref(false)
+const screen = computed(() => screenForRoute(route.name))
 
 // 對戰回報結果後回到章節地圖播放戰後對話
 watch(
@@ -26,13 +30,9 @@ function openSettings() {
 
 <template>
   <div class="app-root">
-    <div class="sea-bg" aria-hidden="true">
-      <span
-        v-for="i in 12"
-        :key="i"
-        class="bubble"
-        :style="{ '--i': i, left: `${(i * 37) % 100}%`, width: `${8 + ((i * 7) % 14)}px`, animationDelay: `-${(i * 53) % 17}s` }"
-      />
+    <div class="backdrop" aria-hidden="true">
+      <ScreenBackground :screen="screen" />
+      <BubbleLayer />
     </div>
     <RouterView />
     <button v-if="route.name !== 'title'" class="gear" type="button" aria-label="設定" @click="openSettings">
@@ -91,21 +91,27 @@ button {
   min-height: 44px;
   font-size: 18px;
   font-weight: 700;
-  background: #7a64b0;
+  background: var(--btn-primary-500);
   color: #fff;
   box-shadow:
-    0 4px 0 #5e4c94,
+    0 4px 0 var(--btn-primary-700),
     var(--shadow);
   cursor: pointer;
-  transition: transform 0.1s;
-  text-shadow: 0 1px 2px rgba(62, 53, 80, 0.35);
+  transition:
+    background-color 120ms,
+    filter 120ms;
+  text-shadow: var(--btn-text-shadow);
 }
 .btn:hover {
-  transform: scale(1.05);
-  background: #6a549f;
+  background: var(--btn-primary-600);
+  filter: drop-shadow(var(--btn-glow));
 }
 .btn:active {
-  transform: scale(0.95);
+  transform: translateY(var(--btn-press-shift));
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--btn-focus-ring);
 }
 .btn.ghost {
   background: #fffdf7;
@@ -115,11 +121,16 @@ button {
     var(--shadow);
   text-shadow: none;
 }
+.btn.ghost:not(:disabled):hover {
+  background: var(--btn-cream);
+}
 .btn:disabled {
-  background: var(--c-disabled);
+  background: var(--btn-disabled-bg);
+  color: var(--btn-disabled-ink);
+  text-shadow: none;
   box-shadow: none;
+  filter: none;
   cursor: not-allowed;
-  opacity: 0.6;
   transform: none;
 }
 .panel {
@@ -153,29 +164,11 @@ button {
   min-height: 100dvh;
   overflow-x: hidden;
 }
-.sea-bg {
+.backdrop {
   position: fixed;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(255, 255, 255, 0.7), transparent 50%),
-    linear-gradient(180deg, #e9f6f4 0%, #cde8f1 45%, #b6d6ea 75%, #c9c2e8 100%);
-  overflow: hidden;
   pointer-events: none;
-}
-.bubble {
-  position: absolute;
-  bottom: -40px;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.25);
-  animation: rise calc(9s + var(--i) * 1.3s) linear infinite;
-}
-@keyframes rise {
-  to {
-    transform: translate(20px, -115vh);
-  }
 }
 .gear {
   position: fixed;

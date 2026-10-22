@@ -13,6 +13,10 @@ export const router = createRouter({
       name: 'battle-sandbox',
       component: () => import('@/components/battle/BattleSandbox.vue'),
     },
+    // 元件展示頁只在開發環境提供
+    ...(import.meta.env.DEV
+      ? [{ path: '/ui-kit', name: 'ui-kit', component: () => import('@/components/ui/UiKitGallery.vue') }]
+      : []),
     { path: '/:pathMatch(.*)*', redirect: { name: 'title' } },
   ],
 })

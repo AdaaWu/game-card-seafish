@@ -1,0 +1,79 @@
+/* 設計 token，數值來源 docs/ux-buttons.md 第 4 節 */
+:root {
+  /* 主色階（結束回合紫） */
+  --btn-primary-100: #ede6f7;
+  --btn-primary-300: #b9a6db;
+  --btn-primary-500: #7a64b0;
+  --btn-primary-600: #6a549f;
+  --btn-primary-700: #5e4c94;
+  /* 次要與危險 */
+  --btn-cream: #fffdf7;
+  --btn-cream-lip: #e2d8c8;
+  --btn-danger-500: #b04a6a;
+  --btn-danger-700: #8a3852;
+  /* 停用 */
+  --btn-disabled-bg: #e4dfea;
+  --btn-disabled-ink: #5f566e;
+  /* 文字 */
+  --btn-ink: #3e3550;
+  --btn-ink-on-primary: #ffffff;
+  --btn-text-shadow: 0 1px 2px rgba(62, 53, 80, 0.45);
+  /* 形狀 */
+  --btn-radius: 999px;
+  --btn-outline: #6e5f80;
+  --btn-lip: 4px;
+  --btn-press-shift: 2px;
+  /* 陰影與光暈 */
+  --btn-shadow: 0 8px 24px rgba(62, 53, 80, 0.14);
+  --btn-glow: 0 0 10px rgba(185, 166, 219, 0.9);
+  --btn-focus-ring: 0 0 0 3px #5e4c94, 0 0 0 7px rgba(246, 227, 161, 0.95);
+  /* 字 */
+  --btn-font: var(--font-ui);
+  --btn-weight: 800;
+  --btn-fs-lg: 24px;
+  --btn-fs-md: 20px;
+  --btn-fs-sm: 17px;
+  --btn-tracking: 0.06em;
+  /* 尺寸 */
+  --btn-h-lg: 64px;
+  --btn-h-md: 56px;
+  --btn-h-sm: 44px;
+  --btn-pad-lg: 36px;
+  --btn-pad-md: 30px;
+  --btn-pad-sm: 24px;
+  --btn-icon: 56px;
+  --btn-menu-h: clamp(56px, 9.6vh, 88px);
+
+  /* 標題組，數值來源 docs/art/audit-20261023-ui.md 第 7 節 */
+  --title-page-h: 84px;
+  --title-page-fs: 40px;
+  --title-page-prefix: 52px;
+  --title-section-h: 48px;
+  --title-section-fs: 20px;
+  --title-section-prefix: 32px;
+  --title-stroke: #7a64b0;
+
+  /* 間距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}
+
+/* 手機橫向：按鈕降一級，主要按鈕不低於 88 x 48 */
+@media (max-height: 500px) {
+  :root {
+    --btn-h-lg: 56px;
+    --btn-fs-lg: 20px;
+    --btn-pad-lg: 30px;
+    --btn-h-md: 44px;
+    --btn-fs-md: 17px;
+    --btn-pad-md: 24px;
+    --btn-icon: 48px;
+    --title-page-h: 56px;
+    --title-page-fs: 28px;
+    --title-page-prefix: 34px;
+  }
+}

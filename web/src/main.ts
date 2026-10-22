@@ -5,6 +5,7 @@ import { router } from './router'
 import { useProgressStore } from './stores/progress'
 import { useSettingsStore } from './stores/settings'
 import './style.css'
+import './styles/tokens.css'
 
 // Google Fonts：Noto Sans TC 與圓體數字
 const fontLink = document.createElement('link')
