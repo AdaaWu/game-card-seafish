@@ -154,7 +154,6 @@ const overlapX = (a: Rect, x0: number, x1: number) => a.x < x1 && x0 < a.x + a.w
 export function computeLayout(w: number, h: number): BattleLayout {
   if (h > w && w < PHONE_PORTRAIT_MAX_W) return phonePortraitLayout(w, h)
   const portrait = h > w
-  const rotateHint = portrait && w < 600
   const scale = portrait ? Math.min(w / PORTRAIT_W, h / DESIGN_H) : Math.min(w / DESIGN_W, h / DESIGN_H)
   const lw = w / scale
   const lh = h / scale
@@ -279,7 +278,7 @@ export function computeLayout(w: number, h: number): BattleLayout {
     scale,
     lw,
     lh,
-    rotateHint,
+    rotateHint: false,
     compact,
     arrangement,
     cssPx,

@@ -30,6 +30,7 @@ export function tallyEvent(stats: BattleStats, event: GameEvent): BattleStats {
       return { ...stats, owners: { ...stats.owners, [event.instanceId]: event.playerId } }
     case 'fatigue':
       return { ...stats, fatigueNext: true }
+    // 不分來源：目標屬於 p2 即計入，p2 自傷與 p2 的全場傷害也會算進我方總傷害
     case 'damage': {
       if (stats.fatigueNext) return { ...stats, fatigueNext: false }
       if (ownerOf(stats, event.targetId) !== 'p2') return stats

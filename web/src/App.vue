@@ -86,6 +86,7 @@ function openSettings() {
   --c-heal: #4fa866;
   --c-buff: #3e9e5c;
   --c-debuff: #d9534f;
+  --c-debuff-on-dark: #ffb4b4;
   --c-disabled: #b8b2bf;
   --radius: 20px;
   --shadow: 0 8px 24px rgba(62, 53, 80, 0.14);
