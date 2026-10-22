@@ -1,12 +1,14 @@
 <script setup lang="ts">
 // 新手教學疊層：遮罩挖洞、高亮外框、說明框、步驟計數、跳過鈕；座標為對戰邏輯 px
-import { computed, ref } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
+import GameButton from '@/components/ui/GameButton.vue'
+import { uiImageUrl } from '@/content/cardStyle'
 import type { Rect } from '@/render/battle/battleLayout'
 import type { Beat } from '@/tutorial/tutorialFlow'
 
 export type Hole = Rect & { focus: string }
 
-const props = defineProps<{
+defineProps<{
   beat: Beat | null
   // 動畫播放中只留跳過鈕
   showGuide: boolean
@@ -15,49 +17,27 @@ const props = defineProps<{
   lw: number
   lh: number
   skipAt: Rect
+  // 說明框位置由對戰畫面依避讓規則算好
+  callout: Rect
   nudgeKey: number
   keyword: { label: string; desc: string } | null
 }>()
-const emit = defineEmits<{ next: []; skip: [] }>()
+const emit = defineEmits<{ next: []; skip: []; measure: [height: number] }>()
 
 const confirming = ref(false)
+const panel = uiImageUrl('panels/panel', true)
+const panelVar = panel ? `url("${panel}")` : 'none'
 
-const CALLOUT_W = 760
-const GAP = 28
-// 說明框估計高度（三行字＋步驟列）
-const CALLOUT_MIN_H = 320
-
-const anchor = computed<Rect | null>(() => {
-  if (props.holes.length === 0) return null
-  const x = Math.min(...props.holes.map((h) => h.x))
-  const y = Math.min(...props.holes.map((h) => h.y))
-  const r = Math.max(...props.holes.map((h) => h.x + h.w))
-  const b = Math.max(...props.holes.map((h) => h.y + h.h))
-  return { x, y, w: r - x, h: b - y }
+// 回報說明框實際高度（邏輯 px），供避讓計算使用
+const calloutEl = ref<HTMLElement | null>(null)
+let observer: ResizeObserver | null = null
+watch(calloutEl, (el) => {
+  observer?.disconnect()
+  if (!el) return
+  observer = new ResizeObserver(() => emit('measure', el.offsetHeight))
+  observer.observe(el)
 })
-
-// 說明框放在目標上下空間較大的一側
-const calloutStyle = computed(() => {
-  const w = Math.min(CALLOUT_W, props.lw - 80)
-  const a = anchor.value
-  if (!a) return { left: `${(props.lw - w) / 2}px`, top: `${props.lh * 0.16}px`, width: `${w}px` }
-  const left = Math.min(Math.max(a.x + a.w / 2 - w / 2, 40), props.lw - w - 40)
-  const spaceAbove = a.y
-  const spaceBelow = props.lh - (a.y + a.h)
-  // 上下都放不下時改放目標左右兩側空間較大的一邊
-  if (Math.max(spaceAbove, spaceBelow) < CALLOUT_MIN_H) {
-    const leftSpace = a.x
-    const rightSpace = props.lw - (a.x + a.w)
-    const sw = Math.min(w, Math.max(leftSpace, rightSpace) - GAP - 40)
-    const x = leftSpace >= rightSpace ? a.x - GAP - sw : a.x + a.w + GAP
-    const top = Math.min(Math.max(a.y + a.h / 2 - CALLOUT_MIN_H / 2, 20), props.lh - CALLOUT_MIN_H - 20)
-    return { left: `${x}px`, top: `${top}px`, width: `${sw}px` }
-  }
-  const above = spaceAbove > spaceBelow
-  return above
-    ? { left: `${left}px`, bottom: `${Math.max(props.lh - a.y + GAP, 20)}px`, width: `${w}px` }
-    : { left: `${left}px`, top: `${Math.min(a.y + a.h + GAP, props.lh - 200)}px`, width: `${w}px` }
-})
+onUnmounted(() => observer?.disconnect())
 
 const pos = (r: Rect) => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` })
 
@@ -93,22 +73,35 @@ function confirmSkip() {
         data-testid="tutorial-hole"
       />
       <div v-if="beat.kind === 'info'" class="catcher" data-testid="tutorial-catcher" @pointerdown.stop @click="emit('next')" />
-      <div class="callout" :style="calloutStyle" role="status" data-testid="tutorial-callout">
+      <div
+        ref="calloutEl"
+        class="callout"
+        :style="{ left: `${callout.x}px`, top: `${callout.y}px`, width: `${callout.w}px`, '--panel': panelVar }"
+        role="status"
+        data-testid="tutorial-callout"
+      >
         <div class="counter" data-testid="tutorial-step">{{ beat.step }} / {{ total }}　{{ beat.title }}</div>
         <p class="text">{{ beat.text }}</p>
         <p v-if="keyword" class="keyword"><b>{{ keyword.label }}</b>：{{ keyword.desc }}</p>
-        <button v-if="beat.kind === 'info'" class="btn next" type="button" data-testid="tutorial-next" @pointerdown.stop @click="emit('next')">
+        <GameButton
+          v-if="beat.kind === 'info'"
+          class="next"
+          variant="primary"
+          data-testid="tutorial-next"
+          @pointerdown.stop
+          @click="emit('next')"
+        >
           下一步 ▸
-        </button>
+        </GameButton>
       </div>
     </template>
     <div class="skip" :style="{ right: `${lw - skipAt.x - skipAt.w}px`, top: `${skipAt.y}px` }" @pointerdown.stop>
       <template v-if="confirming">
         <span class="ask">確定跳過教學？</span>
-        <button class="btn" type="button" data-testid="tutorial-skip-confirm" @click="confirmSkip">跳過</button>
-        <button class="btn ghost" type="button" data-testid="tutorial-skip-cancel" @click="confirming = false">繼續教學</button>
+        <GameButton variant="primary" size="sm" data-testid="tutorial-skip-confirm" @click="confirmSkip">跳過</GameButton>
+        <GameButton variant="secondary" size="sm" data-testid="tutorial-skip-cancel" @click="confirming = false">繼續教學</GameButton>
       </template>
-      <button v-else class="btn ghost" type="button" data-testid="tutorial-skip" @click="askSkip">跳過教學</button>
+      <GameButton v-else variant="secondary" size="sm" data-testid="tutorial-skip" @click="askSkip">跳過教學</GameButton>
     </div>
   </div>
 </template>
@@ -154,15 +147,19 @@ function confirmSkip() {
   pointer-events: auto;
   cursor: pointer;
 }
+/* 說明框外框用面板九宮格，四角貝殼不拉伸 */
 .callout {
   position: absolute;
   z-index: 56;
   box-sizing: border-box;
-  padding: 0.7em 1.1em 0.8em;
-  border-radius: 24px;
-  background: rgba(255, 253, 247, 0.97);
-  border: 4px solid var(--c-lavender-deep);
-  box-shadow: var(--shadow);
+  padding: 0 0.3em;
+  border-style: solid;
+  border-width: 52px;
+  border-image-source: var(--panel);
+  border-image-slice: 128 fill;
+  border-image-width: 52px;
+  border-image-repeat: stretch;
+  filter: drop-shadow(0 8px 18px rgba(62, 53, 80, 0.22));
   font-size: max(30px, calc(var(--min-font) * 1.5));
   font-weight: 800;
   line-height: 1.4;
@@ -184,11 +181,8 @@ function confirmSkip() {
 }
 .next {
   pointer-events: auto;
-  display: block;
+  display: flex;
   margin: 0.4em 0 0 auto;
-  min-height: var(--btn-h);
-  padding: 0 1em;
-  font-size: max(24px, var(--min-font));
 }
 .skip {
   position: absolute;
@@ -197,11 +191,6 @@ function confirmSkip() {
   align-items: center;
   gap: 12px;
   pointer-events: auto;
-}
-.skip .btn {
-  min-height: var(--btn-h);
-  padding: 0 0.9em;
-  font-size: max(24px, var(--min-font));
 }
 .ask {
   padding: 0.2em 0.6em;

@@ -32,6 +32,7 @@ import {
   type TutorialState,
 } from '@/tutorial/tutorialFlow'
 import { scriptedEnemyAction, tutorialSetup } from '@/tutorial/tutorialScript'
+import { placeCallout, placeHint } from '@/tutorial/calloutPlacement'
 import BubbleLayer from '@/components/ui/BubbleLayer.vue'
 import GameButton from '@/components/ui/GameButton.vue'
 import TutorialOverlay, { type Hole } from './TutorialOverlay.vue'
@@ -161,6 +162,42 @@ const tutKeyword = computed(() => {
 const skipAt = computed<Rect>(() => {
   const g = layout.value.gear
   return { x: g.x - 24, y: g.y + 14, w: 0, h: 0 }
+})
+
+// 說明框與提示字不蓋住頭像、潮能、牌庫、結束回合、手牌與跳過鈕
+const CALLOUT_W = 760
+const calloutH = ref(320)
+const hudRects = computed<Rect[]>(() => {
+  const l = layout.value
+  const skip = skipAt.value
+  const skipW = 520
+  return [
+    l.heroP1,
+    l.heroP2,
+    l.manaP1,
+    l.manaP2,
+    l.deckP1,
+    l.deckP2,
+    l.enemyHand,
+    l.endTurn,
+    l.handRest,
+    { x: skip.x - skipW, y: skip.y, w: skipW, h: l.buttonH },
+  ]
+})
+const calloutRect = computed(() => {
+  const l = layout.value
+  return placeCallout({ holes: tutHoles.value, avoid: hudRects.value, w: CALLOUT_W, h: calloutH.value, lw: l.lw, lh: l.lh })
+})
+const hintTop = computed(() => {
+  const h = hint.value
+  const l = layout.value
+  const preferY = l.board.y + 20
+  if (!h) return preferY
+  const font = Math.max(32, l.minFont)
+  const avoid = tutOn.value
+    ? [...tutHoles.value, ...hudRects.value, ...minionRects('p1'), ...minionRects('p2'), ...(guideVisible.value ? [calloutRect.value] : [])]
+    : []
+  return placeHint({ w: [...h.text].length * font + 56, h: font * 1.4 + 20, preferY, avoid, lw: l.lw, lh: l.lh }).y
 })
 
 // 教學進行中只留目前步驟允許的動作
@@ -1147,7 +1184,7 @@ const uiStyle = computed(() => {
         <div ref="fxEl" class="fx-layer" />
         <div class="vignette" />
         <div v-if="fx.banner" :key="fx.banner.key" class="banner" :style="{ top: `${layout.boardCy - 40}px` }">{{ fx.banner.text }}</div>
-        <div v-if="hint" :key="hint.key" class="hint" :style="{ top: `${layout.board.y + 20}px` }" role="status">{{ hint.text }}</div>
+        <div v-if="hint" :key="hint.key" class="hint" :style="{ top: `${hintTop}px` }" role="status">{{ hint.text }}</div>
         <TutorialOverlay
           v-if="tutOn"
           :beat="beat"
@@ -1157,10 +1194,12 @@ const uiStyle = computed(() => {
           :lw="layout.lw"
           :lh="layout.lh"
           :skip-at="skipAt"
+          :callout="calloutRect"
           :nudge-key="nudgeKey"
           :keyword="tutKeyword"
           @next="tutSignal({ type: 'next' })"
           @skip="onTutorialSkip"
+          @measure="calloutH = $event"
         />
         <div v-if="loading" class="loading">潛入海底中…</div>
       </div>
