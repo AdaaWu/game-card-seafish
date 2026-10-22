@@ -44,3 +44,6 @@
 2026-10-22T06:30 | note | - | producer | 工作區另有新 session 的未提交改動（tutorial、insertPreview、20261023 screen-backgrounds），本 session 未動；本 session 結束
 2026-10-22T07:00 | gate | D09 | human | 使用者簽核通過建議變體；決定 D01 到 D07 要做，漂浮不做；redraw-v2 已刪
 2026-10-22T07:00 | handoff | - | producer | 使用者要更新 Claude，第二輪交新 session
+2026-10-22T15:30 | report | D01 | engineer | 可攻擊柔光疊畫 2 次改 3 次；牌庫空字色改 #FFB4B4，實測膠囊底對比 5.11:1（壓白底最差 4.69:1）；分支 polish-round2 88a919e
+2026-10-22T15:30 | report | D05 | engineer | art-style.md 與 ux.md 陣營主色對齊 FACTION_STYLE，兩份文件加註以 cardStyle.ts 為準；100598f
+2026-10-22T15:30 | report | D07 | engineer | art-style.md 禁文字規則改為只限卡圖，標題 Logo 可含遊戲名稱；a07496b

@@ -17,12 +17,12 @@
 狀態值：todo / doing / done / blocked / partial
 
 ## 第二輪（使用者 2026-10-22 決定，待新 session 執行）
-- [ ] D01 腳下柔光加強一級、牌庫空紅字改成對比達 4.5:1 的色（producer 建議，使用者同意先列）
+- [x] D01 腳下柔光加強一級、牌庫空紅字改成對比達 4.5:1 的色（producer 建議，使用者同意先列）
 - [ ] D02 對戰直式版面：battleLayout 加寬度 <600 的直式分支，另設直式邏輯寬度約 720，重排英雄、戰場 6 格、手牌；three.js 鏡頭與拖曳判定同步；補 390x844 測試與 E2E
 - [ ] D03 無效果文字生物卡縮小文字框，插畫露更多；cardStyle 的 cardFaceLayout 加「無文字」分支並補測試
 - [ ] D04 結算畫面做到 docs/ux.md 完整版：角色圖、翻牌獎勵、總傷害
-- [ ] D05 色碼統一：以 web/src/content/cardStyle.ts 為準，改 docs/art-style.md 與 docs/ux.md 的潮、霜、葉、中立色碼
+- [x] D05 色碼統一：以 web/src/content/cardStyle.ts 為準，改 docs/art-style.md 與 docs/ux.md 的潮、霜、葉、中立色碼
 - [ ] D06 主字體接 jf open 粉圓：先查證授權為 OFL 1.1 並記錄來源，再加 @font-face 與字體檔，數字字型在 M PLUS Rounded 1c 與 Baloo 2 擇一
-- [ ] D07 Logo 允許放字：docs/art-style.md 的禁文字規則改為只限卡圖
+- [x] D07 Logo 允許放字：docs/art-style.md 的禁文字規則改為只限卡圖
 - [x] D08 刪除 assets/_tests/redraw-v2（已於本 session 執行）
 - [x] D09 美術終審：對照頁簽核欄已填，建議變體正式採用，pending 變體保留
