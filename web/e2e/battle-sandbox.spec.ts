@@ -139,6 +139,13 @@ test('測試頁：完整打完一場並依戰果離開', async ({ page }) => {
   const result = page.locator('.result')
   await expect(result).toBeVisible({ timeout: 30_000 })
   const lost = await result.evaluate((el) => el.classList.contains('lose'))
+  // 數據列：回合數與總傷害，勝利另有 3 張獎勵卡
+  await expect(page.getByTestId('result-rounds')).toBeVisible()
+  const damage = page.getByTestId('result-damage')
+  await expect(damage).toBeVisible()
+  expect(Number((await damage.textContent())?.match(/\d+/)?.[0])).toBeGreaterThanOrEqual(1)
+  const won = await result.evaluate((el) => el.classList.contains('win'))
+  if (won) await expect(page.getByTestId('result-rewards').getByTestId('result-reward')).toHaveCount(3)
   const exit = lost ? page.getByTestId('back-map') : page.getByRole('button', { name: '繼續' })
   await expect(exit).toBeVisible({ timeout: 30_000 })
   if (lost) await expect(exit).toHaveText('回選單')

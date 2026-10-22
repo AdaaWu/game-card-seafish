@@ -1,8 +1,8 @@
 // 對戰狀態：持有引擎 state 與顯示狀態，玩家與 AI 的指令都經過這裡
 import { defineStore } from 'pinia'
 import { computed, markRaw, ref, shallowRef, toRaw } from 'vue'
-import { applyAction, getLegalActions, IllegalActionError, startGame } from '@/engine'
-import type { Action, CardDb, GameEvent, GameState } from '@/engine'
+import { applyAction, getLegalActions, IllegalActionError, initialStats, startGame, tallyEvent } from '@/engine'
+import type { Action, BattleStats, CardDb, GameEvent, GameState } from '@/engine'
 import { cardDb, tokens } from '@/content'
 import { reduceView, snapshotView, type BattleView } from '@/render/battle/viewModel'
 
@@ -24,6 +24,7 @@ export const useBattleStore = defineStore('battle', () => {
   const state = shallowRef<GameState | null>(null)
   const view = ref<BattleView | null>(null)
   const busy = ref(false)
+  const stats = shallowRef<BattleStats>(initialStats())
 
   const legal = computed<Action[]>(() => {
     const s = state.value
@@ -40,6 +41,7 @@ export const useBattleStore = defineStore('battle', () => {
       ...(setup.shuffle === false ? { shuffle: false } : {}),
     })
     state.value = markRaw(r.state)
+    stats.value = r.events.reduce(tallyEvent, initialStats())
     // 開局抽牌由動畫逐張補上
     const v = snapshotView(r.state)
     for (const pid of ['p1', 'p2'] as const) {
@@ -59,6 +61,7 @@ export const useBattleStore = defineStore('battle', () => {
     try {
       const r = applyAction(s, action)
       state.value = markRaw(r.state)
+      stats.value = r.events.reduce(tallyEvent, stats.value)
       return { ok: true, events: r.events }
     } catch (e) {
       if (e instanceof IllegalActionError) return { ok: false, reason: e.message }
@@ -90,7 +93,8 @@ export const useBattleStore = defineStore('battle', () => {
     state.value = null
     view.value = null
     busy.value = false
+    stats.value = initialStats()
   }
 
-  return { state, view, busy, legal, start, act, reasonFor, applyEvent, sync, reset }
+  return { state, view, busy, stats, legal, start, act, reasonFor, applyEvent, sync, reset }
 })

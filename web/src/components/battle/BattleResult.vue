@@ -1,14 +1,33 @@
 <script setup lang="ts">
-// 勝負畫面：緞帶標題、小葉立繪、泡泡花瓣；失敗提供重新挑戰與離開
+// 勝負畫面：緞帶標題、小葉立繪、泡泡花瓣、數據列；勝利翻開獎勵卡，失敗提供重新挑戰與離開
 import gsap from 'gsap'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import CardView from '@/components/CardView.vue'
 import GameButton from '@/components/ui/GameButton.vue'
-import { portraitUrl, uiImageUrl } from '@/content/cardStyle'
+import type { Card } from '@/content/types'
+import { resultFigureUrl, uiImageUrl } from '@/content/cardStyle'
+import { resultActions, resultStats, resultTitle } from './resultSummary'
 
-const props = defineProps<{ result: 'win' | 'lose' | 'draw'; speed: number; rounds: number; exitLabel: string; figureH: number }>()
-defineEmits<{ continue: []; retry: [] }>()
+const props = defineProps<{
+  result: 'win' | 'lose' | 'draw'
+  speed: number
+  rounds: number
+  damage: number
+  rewards: Card[]
+  exitLabel: string
+  figureH: number
+  lw: number
+}>()
+const emit = defineEmits<{ continue: []; retry: [] }>()
+
+// 直式寬度不足時立繪在上、面板在下
+const STACK_BELOW = 800
+const FLIP_START = 0.6
+const FLIP_GAP = 0.25
+const FLIP_DURATION = 0.5
 
 const title = ref<HTMLElement | null>(null)
+const flips = ref<HTMLElement[]>([])
 const showButton = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
 const pieces = Array.from({ length: 28 }, (_, i) => ({
@@ -18,25 +37,48 @@ const pieces = Array.from({ length: 28 }, (_, i) => ({
   size: `${14 + (i % 4) * 8}px`,
 }))
 
-const figure = portraitUrl('xiaoye')
+const figure = resultFigureUrl(props.result)
+const heading = resultTitle(props.result)
+const stats = computed(() => resultStats(props.rounds, props.damage))
+const actions = computed(() => resultActions(props.result, props.exitLabel))
+const stacked = computed(() => props.lw < STACK_BELOW)
+const panelStyle = computed(() => (stacked.value ? { maxWidth: `${props.lw - 40}px` } : {}))
 const slice = (path: string) => {
   const u = uiImageUrl(path, true)
   return u ? `url("${u}")` : 'none'
 }
 const frameVars = { '--ribbon': slice('panels/ribbon'), '--panel': slice('panels/panel') }
 
+function flipRewards(): void {
+  if (flips.value.length === 0) return
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+  gsap.set(flips.value, { rotationY: 180 })
+  flips.value.forEach((el, i) =>
+    gsap.to(el, {
+      rotationY: 0,
+      duration: FLIP_DURATION / props.speed,
+      delay: (FLIP_START + i * FLIP_GAP) / props.speed,
+      ease: 'power2.out',
+    }),
+  )
+}
+
 onMounted(() => {
   if (title.value) {
     if (props.result === 'win') gsap.from(title.value, { y: -420, duration: 0.5 / props.speed, ease: 'bounce.out' })
     else gsap.from(title.value, { opacity: 0, duration: 0.4 / props.speed, ease: 'power1.out' })
   }
+  flipRewards()
   timer = setTimeout(() => (showButton.value = true), (props.result === 'win' ? 1500 + 500 : 1000) / props.speed)
 })
-onUnmounted(() => clearTimeout(timer))
+onUnmounted(() => {
+  clearTimeout(timer)
+  gsap.killTweensOf(flips.value)
+})
 </script>
 
 <template>
-  <div class="result" :class="result" :style="frameVars" role="dialog" aria-live="polite">
+  <div class="result" :class="[result, { stacked }]" :style="frameVars" role="dialog" aria-live="polite">
     <div v-if="result === 'win'" class="confetti" aria-hidden="true">
       <span
         v-for="(p, i) in pieces"
@@ -46,17 +88,32 @@ onUnmounted(() => clearTimeout(timer))
     </div>
     <div class="scene">
       <img v-if="figure" class="figure" :src="figure" alt="小葉" draggable="false" :style="{ height: `${figureH}px` }" data-testid="result-figure" />
-      <div class="result-panel">
-        <h2 ref="title" class="ribbon">{{ result === 'win' ? '勝利！' : result === 'lose' ? '再試一次' : '平手' }}</h2>
+      <div class="result-panel" :style="panelStyle">
+        <h2 ref="title" class="ribbon">{{ heading }}</h2>
         <p v-if="result === 'lose'" class="sub">海流有點急，深呼吸再出發吧</p>
-        <p class="rounds" data-testid="result-rounds">回合數 {{ rounds }}</p>
+        <div class="stats">
+          <p v-for="(s, i) in stats" :key="s.testId" class="stat" :data-testid="s.testId">
+            <span v-if="i > 0" class="stat-sep" aria-hidden="true">｜</span>{{ s.label }} <b class="num">{{ s.value }}</b>
+          </p>
+        </div>
+        <div v-if="rewards.length" class="rewards" data-testid="result-rewards">
+          <div v-for="c in rewards" :key="c.id" class="reward" data-testid="result-reward">
+            <div ref="flips" class="flip">
+              <div class="face front"><CardView :card="c" size="md" /></div>
+              <div class="face back" aria-hidden="true" />
+            </div>
+          </div>
+        </div>
         <div class="actions">
           <template v-if="showButton">
-            <template v-if="result === 'lose'">
-              <GameButton variant="primary" size="lg" data-testid="retry" @click="$emit('retry')">重新挑戰</GameButton>
-              <GameButton variant="secondary" size="lg" data-testid="back-map" @click="$emit('continue')">{{ exitLabel }}</GameButton>
-            </template>
-            <GameButton v-else variant="primary" size="lg" @click="$emit('continue')">繼續</GameButton>
+            <GameButton
+              v-for="a in actions"
+              :key="a.label"
+              :variant="a.variant"
+              size="lg"
+              :data-testid="a.testId"
+              @click="a.emit === 'retry' ? emit('retry') : emit('continue')"
+            >{{ a.label }}</GameButton>
           </template>
         </div>
       </div>
@@ -138,17 +195,70 @@ onUnmounted(() => clearTimeout(timer))
 .lose .ribbon {
   color: #6e5f80;
 }
-.sub,
-.rounds {
+.sub {
   margin: 0;
   font-size: max(26px, var(--min-font, 0px));
   color: var(--c-ink);
 }
-.rounds {
-  padding: 6px 24px;
-  border-radius: 999px;
-  background: rgba(255, 253, 247, 0.9);
+/* 數據列：上方分隔線，回合數｜總傷害 */
+.stats {
+  display: flex;
+  justify-content: center;
+  align-self: stretch;
+  padding: 16px 24px 0;
+  border-top: 2px solid rgba(110, 95, 128, 0.25);
+  font-size: max(26px, var(--min-font, 0px));
   font-weight: 800;
+  color: var(--c-ink);
+}
+.stat {
+  margin: 0;
+  white-space: nowrap;
+}
+.stat-sep {
+  margin: 0 16px;
+  opacity: 0.45;
+}
+.num {
+  font-family: var(--font-num);
+}
+/* 獎勵卡：依序翻開一次，不循環 */
+.rewards {
+  display: flex;
+  gap: 24px;
+}
+.reward {
+  perspective: 1200px;
+}
+.flip {
+  position: relative;
+  transform-style: preserve-3d;
+}
+.face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.face.back {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: #8d74c2 url('@assets/ui/card-back.webp') center / cover no-repeat;
+  transform: rotateY(180deg);
+}
+.stacked .scene {
+  flex-direction: column;
+  align-items: center;
+}
+.stacked .figure {
+  margin: 0 0 -40px;
+}
+.stacked .result-panel {
+  box-sizing: border-box;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.stacked .ribbon {
+  min-width: 0;
 }
 .actions {
   display: flex;

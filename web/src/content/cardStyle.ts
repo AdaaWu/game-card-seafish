@@ -262,6 +262,13 @@ export function portraitUrl(characterId: string | undefined): string | null {
   return null
 }
 
+// 結算立繪：勝利開心、失敗沮喪、平手沿用預設
+const RESULT_FIGURE = { win: 'role1-10', lose: 'role1-07', draw: 'role1-01' } as const
+
+export function resultFigureUrl(result: 'win' | 'lose' | 'draw'): string | null {
+  return assetUrls[`stickers/${RESULT_FIGURE[result]}.webp`] ?? null
+}
+
 // 效果文字切段，關鍵字標記為粗體
 export function splitKeywordText(text: string): { text: string; bold: boolean }[] {
   const labels = Object.values(KEYWORDS)

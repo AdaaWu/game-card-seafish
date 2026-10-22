@@ -44,6 +44,7 @@ import ManaBar from './ManaBar.vue'
 import TargetArrow from './TargetArrow.vue'
 import { createBattleStage, type StageFx } from './battleStage'
 import { PLAYER_PORTRAIT_ID } from './opponents'
+import { rewardCardIds } from './resultSummary'
 
 type Outcome = 'win' | 'lose' | 'draw'
 
@@ -94,6 +95,9 @@ const handOpen = ref(false)
 const handState = computed(() => (!layout.value.compact ? 'fan' : handOpen.value ? 'expanded' : 'collapsed'))
 const boosted = ref(false)
 const outcome = ref<Outcome | null>(null)
+// 結算當下定格的總傷害與獎勵卡
+const resultDamage = ref(0)
+const resultRewards = shallowRef<Card[]>([])
 const fx = reactive<StageFx>({ banner: null, showcase: null, lowSaturation: false })
 const hint = ref<{ text: string; key: number } | null>(null)
 const endLocked = ref(false)
@@ -910,6 +914,8 @@ function onGameOver(): void {
   clearTimeout(autoEndTimer)
   const w = store.state?.winner
   outcome.value = w === 'p1' ? 'win' : w === 'p2' ? 'lose' : 'draw'
+  resultDamage.value = store.stats.damageDealt
+  resultRewards.value = rewardCardIds(outcome.value, props.enemyDeck).flatMap((id) => (cards[id] ? [cards[id]] : []))
   audio.playBgm(outcome.value === 'win' ? 'bgm_victory' : 'bgm_defeat')
 }
 
@@ -1211,8 +1217,11 @@ const uiStyle = computed(() => {
             :result="outcome"
             :speed="speed"
             :rounds="rounds"
+            :damage="resultDamage"
+            :rewards="resultRewards"
             :exit-label="exitLabel"
             :figure-h="layout.resultFigureH"
+            :lw="layout.lw"
             @continue="onContinue"
             @retry="onRetry"
             @pointerdown.stop
