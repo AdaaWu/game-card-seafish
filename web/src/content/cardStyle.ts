@@ -11,7 +11,7 @@ export const LAYOUT = {
   border: 12,
   inset: 6,
   // 插畫高度依文字框伸縮；角色高度 86%、寬度上限 108%、頂端往下 10%
-  art: { x: 18, y: 18, w: 464, h: 504, r: 26, minH: 434, maxH: 548, shadowUp: 28, fitH: 0.86, fitW: 1.08, top: 0.1 },
+  art: { x: 18, y: 18, w: 464, h: 504, r: 26, minH: 434, maxH: 602, shadowUp: 28, fitH: 0.86, fitW: 1.08, top: 0.1 },
   ribbon: { creature: { x: 96, w: 308 }, spell: { x: 50, w: 400 }, h: 52, gap: 4 },
   // 效果文字 4 行用 154、3 行 132、2 行以下 110；無效果文字的生物只放類型列用 56
   text: { x: 18, w: 464, bottom: 682, r: 16, h4: 154, h3: 132, h2: 110, h0: 56, padX: 16, typeSpace: 26 },
