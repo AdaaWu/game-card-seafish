@@ -22,3 +22,6 @@ assets/pending/**/_preview/sim-*.png
 assets/pending/**/_preview/preview-*-sheet.png
 assets/pending/**/contact-battle-bg.png
 assets/pending/**/contact-card-frame.png
+# batch-20261023：預覽圖整個目錄不進版控，超過 2MB 的總覽圖排除
+assets/pending/batch-20261023-*/_preview/
+assets/pending/batch-20261023-screens/contact-overview.png
