@@ -36,3 +36,17 @@
 - Pages 存檔是新 origin，會重播開場、只開第 1 關
 - 手機首次進對戰 chunk 690KB 偏慢
 - 切片或圖示載入失敗時該層空白，無 fallback
+
+## 更新（本 session 收尾第二輪）
+- audit 20 項程式端可改：可做的全部完成並 push（最新 5afe38d），audit 檔每項已標狀態
+- 剩下只有需人類決定：粉圓字體授權、生物待機漂浮、色碼統一、開場影片畫風、Logo 放字、無效果文字卡、結算完整版、對戰直式版面、redraw-v2 去留
+- 美術終審：docs/reviews/art-signoff-20261022.md 簽核欄待填
+- 人眼確認兩處：腳下柔光是否夠明顯（crop-minion-compare.png）、牌庫空紅字對比 3.03:1
+- 工作區有另一個 session 的未提交改動（新手教學、insertPreview、20261023 畫面背景委託單），提交前注意別用舊版蓋掉 5afe38d 之後的 BattleScreen.vue 與 Battlefield.ts
+
+## 使用者決定（2026-10-22 末）與第二輪待辦
+- 簽核：建議變體通過，對照頁簽核欄已填
+- 要做：D01 到 D07，見 checklist.md 第二輪；不做：生物待機漂浮
+- 建議順序：D01（小）→ D05、D07（文件）→ D03 → D06 → D04 → D02（最大）
+- 每項走 TDD 兩棒與 code-reviewer 驗收；D02 與 D04 完成後要人眼看截圖
+- 工作區仍有另一個 session 的未提交改動（新手教學、insertPreview、20261023 畫面背景），接手時先處理它們的提交
