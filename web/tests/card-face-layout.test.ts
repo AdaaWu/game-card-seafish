@@ -68,6 +68,12 @@ describe('卡面新版面比例', () => {
     expect(l.health.y + l.health.d).toBe(bottom - 2)
   })
 
+  it('法術行數 0 的文字框仍是 110', () => {
+    const l = cardFaceLayout('spell', 0)
+    expect(l.text.h).toBe(110)
+    expect(l.text.y + l.text.h).toBe(682)
+  })
+
   it('法術緞帶較寬', () => {
     expect(cardFaceLayout('spell', 2).ribbon).toMatchObject({ x: 50, w: 400 })
     expect(cardFaceLayout('creature', 2).ribbon).toMatchObject({ x: 96, w: 308 })
