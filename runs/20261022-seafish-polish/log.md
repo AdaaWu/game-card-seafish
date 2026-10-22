@@ -49,3 +49,6 @@
 2026-10-22T15:30 | report | D07 | engineer | art-style.md 禁文字規則改為只限卡圖，標題 Logo 可含遊戲名稱；a07496b
 2026-10-22T15:45 | report | D03 | engineer | 無效果文字生物卡文字框 110 改 56，插畫維持上限 548，插畫與文字框間留出 60 單位空白待美術判斷；75b5632
 2026-10-22T15:45 | report | D06 | engineer | 粉圓 v2.1 子集 192KB（改名 SeafishRound）、Baloo 2 數字子集 7KB，含 OFL 授權檔；f5474fa、a9f6d50
+2026-10-22T17:00 | report | D04 | engineer | 結算數據列回合數與總傷害、勝利翻開敵方牌組 3 張卡、立繪勝 role1-10 敗 role1-07；549 綠、E2E sandbox 2/2；3815545、89194e8
+2026-10-22T17:00 | report | D03 | engineer | 無文字生物卡插畫上限 548 改 602，與文字框間距 6；075a04a
+2026-10-22T17:00 | report | D06 | engineer | Google Fonts 連結移除 M PLUS Rounded 1c，保留 Noto Sans TC 備援；8df8ccc
