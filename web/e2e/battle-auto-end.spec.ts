@@ -19,6 +19,26 @@ async function engine(page: Page): Promise<{ turn: number; active: string; legal
   })
 }
 
+// 在頁面內記錄提示出現與轉為對手回合的時間點，不受測試端輪詢延遲影響
+async function recordAutoEnd(page: Page) {
+  await page.evaluate((hintText) => {
+    const w = window as unknown as { __autoEnd: { hintAt?: number; enemyAt?: number } }
+    w.__autoEnd = {}
+    const check = () => {
+      const now = performance.now()
+      const hint = [...document.querySelectorAll('.hint')].some((el) => el.textContent?.includes(hintText))
+      if (hint && w.__autoEnd.hintAt === undefined) w.__autoEnd.hintAt = now
+      const btn = document.querySelector('[data-testid="end-turn"]')
+      if (btn?.textContent?.includes('對手回合') && w.__autoEnd.enemyAt === undefined) w.__autoEnd.enemyAt = now
+    }
+    new MutationObserver(check).observe(document.body, { subtree: true, childList: true, characterData: true })
+  }, IDLE_HINT)
+}
+
+async function autoEndEvents(page: Page): Promise<{ hintAt?: number; enemyAt?: number }> {
+  return page.evaluate(() => (window as unknown as { __autoEnd: { hintAt?: number; enemyAt?: number } }).__autoEnd)
+}
+
 async function enterBattle(page: Page) {
   await page.setViewportSize({ width: 1600, height: 900 })
   await page.goto(SANDBOX)
@@ -63,19 +83,19 @@ test('出完最後一張可出的牌後提示無可用動作並自動進入對�
   test.setTimeout(180_000)
   await enterBattle(page)
   expect((await engine(page)).legal).toBeGreaterThan(1)
+  await recordAutoEnd(page)
   await playUntilIdle(page)
   // 前置條件：已出完牌且動畫結束，只剩結束回合
   expect((await engine(page)).legal).toBe(1)
-  const idleAt = Date.now()
-  await expect(page.getByText(IDLE_HINT)).toBeVisible({ timeout: 2_500 })
   const btn = page.getByTestId('end-turn')
-  // 提示出現當下還沒結束回合，或已延遲至少 800ms
-  const hintText = await btn.textContent()
-  if (Date.now() - idleAt < 800) expect(hintText).toBe('結束回合')
-  await expect(btn).toHaveText('對手回合', { timeout: 4_000 })
+  await expect(btn).toHaveText('對手回合', { timeout: 8_000 })
   await expect(btn).toHaveClass(/enemy/)
-  // 延遲約 1 秒，不能立即結束也不能拖太久
-  expect(Date.now() - idleAt).toBeLessThan(4_000)
+  const { hintAt, enemyAt } = await autoEndEvents(page)
+  // 先出現提示，延遲約 1 秒才轉為對手回合，不能立即結束也不能拖太久
+  expect(hintAt).toBeDefined()
+  expect(enemyAt).toBeDefined()
+  expect(enemyAt! - hintAt!).toBeGreaterThanOrEqual(800)
+  expect(enemyAt! - hintAt!).toBeLessThan(4_000)
   expect((await engine(page)).active).toBe('p2')
 })
 
@@ -96,9 +116,11 @@ test('自動結束觸發的同時按結束回合鈕，回合數只前進 1', asy
   test.setTimeout(180_000)
   await enterBattle(page)
   const start = (await engine(page)).turn
+  await recordAutoEnd(page)
   await playUntilIdle(page)
   expect((await engine(page)).legal).toBe(1)
-  await expect(page.getByText(IDLE_HINT)).toBeVisible({ timeout: 2_500 })
+  // 提示只顯示 1.2 秒，改等頁面內記錄，不靠測試端輪詢抓畫面
+  await expect.poll(async () => (await autoEndEvents(page)).hintAt, { timeout: 5_000, intervals: [50] }).toBeDefined()
   await page.getByTestId('end-turn').click({ force: true })
   await expect(page.getByTestId('end-turn')).toHaveText('對手回合', { timeout: 3_000 })
   expect((await engine(page)).turn).toBe(start + 1)
