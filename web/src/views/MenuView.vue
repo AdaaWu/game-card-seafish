@@ -2,12 +2,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter, type RouteLocationRaw } from 'vue-router'
 import SettingsDialog from '@/components/SettingsDialog.vue'
+import GameButton from '@/components/ui/GameButton.vue'
+import PageTitle from '@/components/ui/PageTitle.vue'
+import { portraitUrl } from '@/content/cardStyle'
 import { audio } from '@/fx/audio'
 import { useProgressStore } from '@/stores/progress'
 
 const router = useRouter()
 const progress = useProgressStore()
 const showSettings = ref(false)
+const figure = portraitUrl('xiaoye')
 
 interface MenuItem {
   label: string
@@ -41,93 +45,91 @@ onMounted(() => audio.playBgm('bgm_title'))
 
 <template>
   <main class="page menu">
-    <h1>主選單</h1>
-    <nav class="list">
-      <button
-        v-for="item in items"
-        :key="item.label"
-        type="button"
-        class="item panel"
-        :class="{ locked: item.locked }"
-        :aria-disabled="item.locked"
-        @mouseenter="audio.play('sfx_ui_hover')"
-        @click="go(item)"
-      >
-        <span class="label">{{ item.label }}</span>
-        <span v-if="item.locked" class="lock">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z" />
-          </svg>
-          完成第 1 場後開放
-        </span>
-      </button>
-      <button type="button" class="item panel" @mouseenter="audio.play('sfx_ui_hover')" @click="openSettings">
-        <span class="label">設定</span>
-      </button>
-    </nav>
+    <img v-if="figure" class="figure" :src="figure" alt="" draggable="false" />
+    <div class="group">
+      <PageTitle level="page" prefix="shell" faction="common" divider="pearl">主選單</PageTitle>
+      <nav class="list">
+        <GameButton
+          v-for="item in items"
+          :key="item.label"
+          class="item"
+          variant="menu"
+          :locked="item.locked"
+          locked-hint="完成第 1 場後開放"
+          @mouseenter="audio.play('sfx_ui_hover')"
+          @click="go(item)"
+        >
+          {{ item.label }}
+        </GameButton>
+        <GameButton class="item" variant="menu" @mouseenter="audio.play('sfx_ui_hover')" @click="openSettings">設定</GameButton>
+      </nav>
+    </div>
     <SettingsDialog v-if="showSettings" @close="showSettings = false" />
   </main>
 </template>
 
 <style scoped>
+/* 立繪是正方形圖，可見範圍約佔寬度 15% 到 85% */
 .menu {
+  --fig-h: clamp(240px, 62vh, 640px);
+  --fig-left: 6vw;
+  --fig-bottom: 4vh;
+  --group-left: calc(var(--fig-left) + var(--fig-h) * 0.85 + 2vw);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 10vh;
+}
+.figure {
+  position: fixed;
+  left: var(--fig-left);
+  bottom: var(--fig-bottom);
+  z-index: 0;
+  width: var(--fig-h);
+  height: var(--fig-h);
+  pointer-events: none;
+  filter: drop-shadow(0 12px 24px rgba(90, 78, 106, 0.22));
+}
+.group {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
-}
-h1 {
-  margin: 4vh 0 0;
-  font-size: 40px;
-  color: #fff;
-  -webkit-text-stroke: 8px var(--c-lavender-deep);
-  paint-order: stroke fill;
+  gap: clamp(8px, 2vh, 20px);
+  width: min(500px, calc(100vw - var(--group-left) - 4vw));
+  margin-left: var(--group-left);
 }
 .list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  width: min(420px, 100%);
+  gap: clamp(8px, 1.8vh, 16px);
+  width: 100%;
 }
-.item {
-  border: 3px solid #fff;
-  padding: 18px 24px;
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  cursor: pointer;
-  transition: transform 0.1s;
+.list .item {
+  width: 100%;
 }
-.item:not(.locked):hover {
-  transform: scale(1.04);
-  border-color: var(--c-lavender);
+@media (max-height: 500px) {
+  .menu {
+    --fig-h: 78vh;
+    --fig-left: 2vw;
+    --fig-bottom: -4vh;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .group {
+    width: min(400px, calc(100vw - var(--group-left) - 4vw));
+  }
 }
-.item:active {
-  transform: scale(0.96);
-}
-.label {
-  font-size: 24px;
-  font-weight: 900;
-}
-.item.locked {
-  cursor: not-allowed;
-  background: rgba(236, 232, 240, 0.9);
-}
-.item.locked .label {
-  color: #8f879a;
-}
-.lock {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--c-ink-soft);
-}
-.lock svg {
-  width: 20px;
-  height: 20px;
-  fill: #8f879a;
+/* 直式窄螢幕放不下立繪，只留選單 */
+@media (max-aspect-ratio: 1/1) {
+  .figure {
+    display: none;
+  }
+  .group {
+    width: min(500px, 100%);
+    margin: 0 auto;
+  }
 }
 </style>

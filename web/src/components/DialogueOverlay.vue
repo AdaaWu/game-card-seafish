@@ -2,8 +2,9 @@
 // 劇情對話：逐字打字、點擊下一句、快轉、跳過、紀錄
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import CharacterPortrait from '@/components/CharacterPortrait.vue'
+import GameButton from '@/components/ui/GameButton.vue'
 import { characterByName } from '@/content'
-import { portraitUrl } from '@/content/cardStyle'
+import { portraitUrl, uiImageUrl } from '@/content/cardStyle'
 import type { DialogueLine, Faction } from '@/content/types'
 import { audio } from '@/fx/audio'
 
@@ -34,6 +35,8 @@ const history = computed(() => props.lines.slice(0, index.value + 1))
 const leftUrl = computed(() => portraitUrl(characterByName(props.protagonist)?.id))
 const rightUrl = computed(() => portraitUrl(characterByName(opponent.value)?.id))
 const failed = ref<Record<string, boolean>>({})
+const nameplate = uiImageUrl('panels/nameplate', true)
+const nameplateStyle = nameplate ? { borderImageSource: `url("${nameplate}")` } : {}
 
 function clearTimer() {
   if (timer) clearTimeout(timer)
@@ -129,9 +132,9 @@ onBeforeUnmount(() => {
 <template>
   <div class="overlay" @click="advance">
     <div class="tools" @click.stop>
-      <button class="tool" :class="{ on: fast }" type="button" :aria-pressed="fast" @click="toggleFast">快轉</button>
-      <button class="tool" type="button" @click="confirmSkip = true">跳過</button>
-      <button class="tool" type="button" @click="showLog = true">紀錄</button>
+      <GameButton :variant="fast ? 'primary' : 'secondary'" size="sm" :aria-pressed="fast" @click="toggleFast">快轉</GameButton>
+      <GameButton variant="secondary" size="sm" @click="confirmSkip = true">跳過</GameButton>
+      <GameButton variant="secondary" size="sm" @click="showLog = true">紀錄</GameButton>
     </div>
 
     <div class="stage">
@@ -160,7 +163,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-if="line" class="box panel" aria-live="polite">
-      <div class="speaker" :class="{ right: !leftActive }">{{ line.speaker }}</div>
+      <div class="speaker" :class="{ right: !leftActive }" :style="nameplateStyle">{{ line.speaker }}</div>
       <p class="text">{{ visibleText }}<span v-if="!typing" class="caret" aria-hidden="true">▼</span></p>
     </div>
 
@@ -168,8 +171,8 @@ onBeforeUnmount(() => {
       <div class="modal panel" role="alertdialog" aria-label="跳過對話確認">
         <p>要跳過這段對話嗎？</p>
         <div class="actions">
-          <button class="btn ghost" type="button" @click="confirmSkip = false">繼續看</button>
-          <button class="btn" type="button" @click="skip">跳過</button>
+          <GameButton variant="secondary" @click="confirmSkip = false">繼續看</GameButton>
+          <GameButton variant="primary" @click="skip">跳過</GameButton>
         </div>
       </div>
     </div>
@@ -182,7 +185,7 @@ onBeforeUnmount(() => {
             <span>{{ l.text }}</span>
           </li>
         </ol>
-        <button class="btn" type="button" @click="showLog = false">關閉</button>
+        <GameButton variant="primary" @click="showLog = false">關閉</GameButton>
       </div>
     </div>
   </div>
@@ -207,22 +210,8 @@ onBeforeUnmount(() => {
   gap: 8px;
   z-index: 2;
 }
-.tool {
-  min-height: 44px;
-  min-width: 64px;
-  border: none;
-  border-radius: 999px;
-  background: #fffdf7;
-  font-weight: 800;
-  font-size: 15px;
-  box-shadow: var(--shadow);
-  cursor: pointer;
-}
-.tool.on {
-  background: var(--c-butter);
-}
 .stage {
-  --fig-h: 64vh;
+  --fig-h: clamp(420px, 72vh, 760px);
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -231,10 +220,9 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 12vh;
   bottom: 12dvh;
-  transform-origin: 50% 100%;
   transition:
     filter 0.2s,
-    transform 0.2s;
+    opacity 0.2s;
 }
 .side.left {
   left: 4vw;
@@ -246,20 +234,25 @@ onBeforeUnmount(() => {
 .side:not(.dim) {
   z-index: 2;
 }
+/* 說話者加白色外光；非說話者壓暗，不位移不縮放 */
+.side:not(.dim) .figure {
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 12px 24px rgba(90, 78, 106, 0.2));
+}
 .side.dim {
-  filter: brightness(0.75) saturate(0.7);
-  transform: translateY(2%) scale(0.96);
+  filter: brightness(0.7) saturate(0.6);
+  opacity: 0.85;
 }
 .figure {
   display: block;
   height: var(--fig-h);
   width: auto;
+  max-width: 44vw;
   object-fit: contain;
   filter: drop-shadow(0 12px 24px rgba(90, 78, 106, 0.2));
 }
 @supports (height: 1dvh) {
   .stage {
-    --fig-h: 64dvh;
+    --fig-h: clamp(420px, 72dvh, 760px);
   }
 }
 .box {
@@ -280,18 +273,25 @@ onBeforeUnmount(() => {
 }
 .speaker {
   flex: none;
+  box-sizing: border-box;
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
   margin-bottom: 8px;
-  padding: 6px 20px;
-  border-radius: 999px;
-  background: var(--c-lavender-deep);
-  color: #fff;
+  padding: 0 4px 4px 18px;
+  border-style: solid;
+  border-width: 0 22px;
+  border-image-slice: 0 52 0 52 fill;
+  border-image-width: 0 22px;
+  border-image-repeat: stretch;
+  white-space: nowrap;
+  color: var(--c-ink);
   font-weight: 900;
   font-size: 18px;
 }
 .speaker.right {
   align-self: flex-end;
-  background: #3a7a8a;
 }
 .text {
   min-height: 0;
@@ -357,6 +357,14 @@ onBeforeUnmount(() => {
 }
 /* 矮螢幕名牌放在文字左側，不佔高度 */
 @media (max-height: 500px) {
+  .stage {
+    --fig-h: 78vh;
+  }
+  @supports (height: 1dvh) {
+    .stage {
+      --fig-h: 78dvh;
+    }
+  }
   .box {
     flex-direction: row;
     align-items: flex-start;
@@ -364,8 +372,11 @@ onBeforeUnmount(() => {
     padding: 12px 20px 8px;
   }
   .speaker {
+    height: 36px;
     margin-bottom: 0;
-    padding: 4px 14px;
+    padding: 0 2px 3px 14px;
+    border-width: 0 18px;
+    border-image-width: 0 18px;
     font-size: 15px;
   }
   .speaker.right {

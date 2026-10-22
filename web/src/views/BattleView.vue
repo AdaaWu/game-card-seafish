@@ -3,6 +3,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BattleScreen from '@/components/battle/BattleScreen.vue'
+import GameButton from '@/components/ui/GameButton.vue'
 import OpponentPicker from '@/components/battle/OpponentPicker.vue'
 import { FREE_HERO_HP, storyPortraitId, type FreeOpponent } from '@/components/battle/opponents'
 import { decks } from '@/content'
@@ -93,14 +94,14 @@ function freeFinished() {
     />
     <main v-else class="page">
       <OpponentPicker title="自由對戰" @pick="pickFree">
-        <button class="btn ghost back" type="button" @click="router.push({ name: 'menu' })">返回</button>
+        <GameButton class="back" variant="secondary" size="sm" @click="router.push({ name: 'menu' })">返回</GameButton>
       </OpponentPicker>
     </main>
   </template>
   <main v-else class="page empty">
     <div class="panel box">
       <h1>沒有進行中的對戰</h1>
-      <button class="btn" type="button" @click="router.push({ name: 'story' })">回到章節地圖</button>
+      <GameButton variant="primary" @click="router.push({ name: 'story' })">回到章節地圖</GameButton>
     </div>
   </main>
 </template>
