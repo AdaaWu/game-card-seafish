@@ -302,7 +302,7 @@ export class Battlefield {
     const bubbleTex = radialTexture('rgba(200,230,255,0.35)', 'rgba(255,220,250,0.9)', 128, true)
     const overlayMat = (map: THREE.Texture | null, opacity = 1) =>
       new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, visible: map !== null })
-    this.readyMat = overlayMat(sliceTex(OVERLAY_SLICES.ready, () => radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'), 2))
+    this.readyMat = overlayMat(sliceTex(OVERLAY_SLICES.ready, () => radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'), 3))
     this.tauntMat = overlayMat(sliceTex(OVERLAY_SLICES.taunt, () => null))
     this.iceMat = overlayMat(sliceTex(OVERLAY_SLICES.frozen, iceTexture))
     this.bubbleMat = overlayMat(sliceTex(OVERLAY_SLICES.bubble, () => bubbleTex), 0.85)

@@ -1352,7 +1352,7 @@ const uiStyle = computed(() => {
   box-shadow: none;
 }
 .deck.empty .count {
-  color: var(--c-debuff);
+  color: #ffb4b4;
 }
 .end-turn {
   position: absolute;
