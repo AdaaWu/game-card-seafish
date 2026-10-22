@@ -11,10 +11,10 @@ export const LAYOUT = {
   border: 12,
   inset: 6,
   // 插畫高度依文字框伸縮；角色高度 86%、寬度上限 108%、頂端往下 10%
-  art: { x: 18, y: 18, w: 464, h: 504, r: 26, minH: 434, maxH: 548, shadowUp: 28, fitH: 0.86, fitW: 1.08, top: 0.1 },
+  art: { x: 18, y: 18, w: 464, h: 504, r: 26, minH: 434, maxH: 602, shadowUp: 28, fitH: 0.86, fitW: 1.08, top: 0.1 },
   ribbon: { creature: { x: 96, w: 308 }, spell: { x: 50, w: 400 }, h: 52, gap: 4 },
-  // 效果文字 4 行用 154、3 行 132、2 行以下 110
-  text: { x: 18, w: 464, bottom: 682, r: 16, h4: 154, h3: 132, h2: 110, padX: 16, typeSpace: 26 },
+  // 效果文字 4 行用 154、3 行 132、2 行以下 110；無效果文字的生物只放類型列用 56
+  text: { x: 18, w: 464, bottom: 682, r: 16, h4: 154, h3: 132, h2: 110, h0: 56, padX: 16, typeSpace: 26 },
   cost: { x: 10, y: 10, d: 70 },
   faction: { x: 420, y: 10, d: 70 },
   attack: { x: 14, d: 70, up: 2 },
@@ -53,15 +53,16 @@ export interface Rect {
   h: number
 }
 
-export function textBoxHeight(lines: number): number {
+export function textBoxHeight(lines: number, type: Card['type']): number {
   const t = LAYOUT.text
+  if (lines === 0 && type === 'creature') return t.h0
   return lines >= 4 ? t.h4 : lines === 3 ? t.h3 : t.h2
 }
 
 // 依效果文字行數算出整張卡面版面
 export function cardFaceLayout(type: Card['type'], textLines: number) {
   const L = LAYOUT
-  const textH = textBoxHeight(textLines)
+  const textH = textBoxHeight(textLines, type)
   const textY = L.text.bottom - textH
   const artH = Math.min(L.art.maxH, Math.max(L.art.minH, textY - L.inset - L.art.y))
   const artBottom = L.art.y + artH
@@ -259,6 +260,13 @@ export function portraitUrl(characterId: string | undefined): string | null {
   if (own) return own
   if (characterId === 'xiaoye') return assetUrls['stickers/role1-01.png'] ?? null
   return null
+}
+
+// 結算立繪：勝利開心、失敗沮喪、平手沿用預設
+const RESULT_FIGURE = { win: 'role1-10', lose: 'role1-07', draw: 'role1-01' } as const
+
+export function resultFigureUrl(result: 'win' | 'lose' | 'draw'): string | null {
+  return assetUrls[`stickers/${RESULT_FIGURE[result]}.webp`] ?? null
 }
 
 // 效果文字切段，關鍵字標記為粗體

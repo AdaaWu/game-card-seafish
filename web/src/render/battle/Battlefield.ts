@@ -8,7 +8,7 @@ import { MinionTextureCache, STAT_STRIP, type SliceImages } from './minionTextur
 import { MINION_CANVAS, OVERLAY_ORDER, OVERLAY_SLICES, overlayState } from './minionLayers'
 import { assetUrls } from '@/content/assetUrls'
 import { DESIGN_H, DESIGN_W, boardGeometry, type BoardGeometry } from './battleLayout'
-import { insertPreview } from './insertPreview'
+import { insertPreview, slotPos } from './insertPreview'
 
 const FOV = 30
 const CAM_Z = 30
@@ -302,7 +302,7 @@ export class Battlefield {
     const bubbleTex = radialTexture('rgba(200,230,255,0.35)', 'rgba(255,220,250,0.9)', 128, true)
     const overlayMat = (map: THREE.Texture | null, opacity = 1) =>
       new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, visible: map !== null })
-    this.readyMat = overlayMat(sliceTex(OVERLAY_SLICES.ready, () => radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'), 2))
+    this.readyMat = overlayMat(sliceTex(OVERLAY_SLICES.ready, () => radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'), 3))
     this.tauntMat = overlayMat(sliceTex(OVERLAY_SLICES.taunt, () => null))
     this.iceMat = overlayMat(sliceTex(OVERLAY_SLICES.frozen, iceTexture))
     this.bubbleMat = overlayMat(sliceTex(OVERLAY_SLICES.bubble, () => bubbleTex), 0.85)
@@ -346,10 +346,10 @@ export class Battlefield {
     this.scene.add(this.divider)
     this.disposables.push(dividerTex, dividerMat)
 
-    // 雙方場地底色
+    // 雙方場地底色：每方最多 2 排，依版面排數顯示
     const laneTex = laneTexture()
     const laneMat = new THREE.MeshBasicMaterial({ map: laneTex, transparent: true, depthWrite: false })
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 4; i++) {
       const lane = new THREE.Mesh(this.unitGeo, laneMat)
       this.lanes.push(lane)
       this.scene.add(lane)
@@ -447,7 +447,15 @@ export class Battlefield {
 
   // 依版面的邏輯尺寸調整鏡頭距離與高度，讓分隔線落在 boardCy；生物尺寸改變時重排
   setView(lw: number, lh: number, boardCy: number, geo: BoardGeometry = this.geo): void {
-    if (geo.minionW !== this.geo.minionW || geo.rowOffset !== this.geo.rowOffset || geo.spacing !== this.geo.spacing) {
+    const g0 = this.geo
+    if (
+      geo.minionW !== g0.minionW ||
+      geo.rowOffset !== g0.rowOffset ||
+      geo.spacing !== g0.spacing ||
+      geo.cols !== g0.cols ||
+      geo.rowsPerSide !== g0.rowsPerSide ||
+      geo.rowPitch !== g0.rowPitch
+    ) {
       this.geo = geo
       this.applyGeometry()
     }
@@ -469,8 +477,10 @@ export class Battlefield {
     pos.needsUpdate = true
   }
 
-  private rowY(pid: PlayerId): number {
-    return pid === 'p1' ? -px(this.geo.rowOffset) : px(this.geo.rowOffset)
+  // row 0 為靠中線的前排
+  private rowY(pid: PlayerId, row = 0): number {
+    const off = px(this.geo.rowOffset + row * this.geo.rowPitch)
+    return pid === 'p1' ? -off : off
   }
 
   private minionH(): number {
@@ -481,8 +491,10 @@ export class Battlefield {
     const g = this.geo
     this.divider.scale.set(px(g.laneW + 200), px(16), 1)
     this.lanes.forEach((lane, i) => {
+      const row = Math.floor(i / 2)
+      lane.visible = row < g.rowsPerSide
       lane.scale.set(px(g.laneW), px(g.minionH + 40), 1)
-      lane.position.set(0, this.rowY(i === 0 ? 'p1' : 'p2'), -0.6)
+      lane.position.set(0, this.rowY(i % 2 === 0 ? 'p1' : 'p2', row), -0.6)
     })
     this.slot.scale.set(px(g.frameW), px(g.frameH), 1)
     this.slot.position.y = this.rowY('p1')
@@ -546,8 +558,10 @@ export class Battlefield {
     return this.worldToLogical(this.tmp)
   }
 
-  homeX(index: number, count: number): number {
-    return (index - (count - 1) / 2) * px(this.geo.spacing)
+  // 第 index 格的世界座標
+  private home(pid: PlayerId, index: number, count: number): { x: number; y: number } {
+    const p = slotPos(index, count, this.geo)
+    return { x: px(p.x), y: this.rowY(pid, p.row) }
   }
 
   pick(x: number, y: number): string | null {
@@ -559,26 +573,36 @@ export class Battlefield {
     return (hit?.object.userData.instanceId as string | undefined) ?? null
   }
 
-  // 依 x 座標算出我方插入位置
-  insertIndexAt(x: number): number {
+  // 依指標位置算出我方插入位置：取插入後最近的卡位
+  insertIndexAt(x: number, y: number): number {
     const wx = px(x - this.lw / 2)
-    const ids = this.order.p1
+    const wy = px(this.boardCy - y)
+    const n = this.order.p1.length + 1
     let index = 0
-    ids.forEach((id, i) => {
-      if (this.homeX(i, ids.length) < wx) index = i + 1
-      void id
-    })
+    let best = Infinity
+    for (let i = 0; i < n; i++) {
+      const p = this.home('p1', i, n)
+      const d = Math.hypot(p.x - wx, p.y - wy)
+      if (d < best) {
+        best = d
+        index = i
+      }
+    }
     return index
   }
 
   isOverRow(pid: PlayerId, y: number): boolean {
-    return Math.abs(px(this.boardCy - y) - this.rowY(pid)) < this.minionH() * 0.75
+    const wy = px(this.boardCy - y)
+    for (let row = 0; row < this.geo.rowsPerSide; row++) {
+      if (Math.abs(wy - this.rowY(pid, row)) < this.minionH() * 0.75) return true
+    }
+    return false
   }
 
   // 我方插入位置顯示預留卡位，左右生物讓位；null 或場地已滿時收起並滑回原位
   showInsertPreview(index: number | null, color?: string): void {
     const ids = this.order.p1
-    const preview = index === null ? null : insertPreview(ids.length, index, px(this.geo.spacing), MAX_BOARD)
+    const preview = index === null ? null : insertPreview(ids.length, index, this.geo, MAX_BOARD)
     if (!preview) {
       if (this.previewIndex !== null) this.layout('p1', MAKE_ROOM_S)
       this.previewIndex = null
@@ -590,9 +614,11 @@ export class Battlefield {
     this.previewIndex = index
     ids.forEach((id, i) => {
       const m = this.minions.get(id)
-      if (m) gsap.to(m.root.position, { x: preview.minionX[i], duration: MAKE_ROOM_S, ease: 'power2.out', overwrite: 'auto' })
+      const p = preview.minions[i]!
+      const to = { x: px(p.x), y: this.rowY('p1', p.row), duration: MAKE_ROOM_S, ease: 'power2.out', overwrite: 'auto' as const }
+      if (m) gsap.to(m.root.position, to)
     })
-    this.slot.position.set(preview.slotX, this.rowY('p1'), -0.05)
+    this.slot.position.set(px(preview.slot.x), this.rowY('p1', preview.slot.row), -0.05)
     this.slot.visible = true
   }
 
@@ -762,8 +788,7 @@ export class Battlefield {
     ids.forEach((id, i) => {
       const m = this.minions.get(id)
       if (!m || id === skip) return
-      const x = this.homeX(i, ids.length)
-      const y = this.rowY(pid)
+      const { x, y } = this.home(pid, i, ids.length)
       if (seconds <= 0) m.root.position.set(x, y, 0)
       else gsap.to(m.root.position, { x, y, z: 0, duration: seconds, ease: 'power2.out', overwrite: 'auto' })
     })
@@ -793,8 +818,7 @@ export class Battlefield {
     const m = this.createMinion(pid, vm)
     const ids = this.order[pid]
     ids.splice(Math.min(position, ids.length), 0, m.id)
-    const x = this.homeX(ids.indexOf(m.id), ids.length)
-    const y = this.rowY(pid)
+    const { x, y } = this.home(pid, ids.indexOf(m.id), ids.length)
     this.layout(pid, 0.25, m.id)
     m.root.position.set(x * 0.4, pid === 'p1' ? -px(300) : px(300), px(80))
     m.root.scale.setScalar(1.25)

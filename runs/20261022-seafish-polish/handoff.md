@@ -50,3 +50,16 @@
 - 建議順序：D01（小）→ D05、D07（文件）→ D03 → D06 → D04 → D02（最大）
 - 每項走 TDD 兩棒與 code-reviewer 驗收；D02 與 D04 完成後要人眼看截圖
 - 工作區仍有另一個 session 的未提交改動（新手教學、insertPreview、20261023 畫面背景），接手時先處理它們的提交
+
+## 更新（第二輪全部完成）
+- D01 到 D07 全部完成並 push 到 polish-round2，checklist 第二輪全勾
+- D02 手機直式版面：寬度 <600 的直式走新版面，平板直向與橫向數值不變；單元測試 598 綠、E2E 9/9（mobile 3、sandbox 3、auto-end 3）
+- 結算獎勵區加「獲得卡片」標題，並有固定勝利 E2E 案例
+- 待人眼確認：直式截圖 d02-390x844、d02-360x780、d02-430x932（含手牌展開、細節卡、結算）
+- 下一步：使用者看截圖後決定是否合併 polish-round2 到 main 並部署
+
+## 第二輪完成
+- 驗收修正六項 commit 到 polish-round2：0670de7、c5d693f、b44534c、bbd3da4
+- 以 PR 用 merge commit 合併 main，merge commit hash 見 PR 紀錄
+- Actions 部署後線上驗證 390x844、844x390、1366x768 三種尺寸
+- 單元測試 599 綠、E2E mobile 4/4

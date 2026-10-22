@@ -33,6 +33,9 @@ export interface BoardGeometry {
   spacing: number
   laneW: number
   halfH: number
+  cols: number
+  rowsPerSide: number
+  rowPitch: number
 }
 
 // 桌機 1440 約 120px、手機 844 約 80px；手機兩列拉開，左右收緊讓 6 格不壓到潮能條
@@ -50,6 +53,9 @@ export function boardGeometry(compact: boolean): BoardGeometry {
     spacing,
     laneW: Math.max(LANE_W, spacing * 5 + minionW),
     halfH: rowOffset + minionH / 2 + 10,
+    cols: 6,
+    rowsPerSide: 1,
+    rowPitch: 0,
   }
 }
 
@@ -59,7 +65,7 @@ export interface BattleLayout {
   lh: number
   rotateHint: boolean
   compact: boolean
-  arrangement: 'side' | 'stack'
+  arrangement: 'side' | 'stack' | 'portrait'
   // 1 CSS px 換成邏輯 px
   cssPx: number
   minFont: number
@@ -98,6 +104,11 @@ export interface BattleLayout {
 export const DESIGN_W = 1920
 export const DESIGN_H = 1080
 const PORTRAIT_W = 1280
+// 手機直式：舞台寬小於 600 時邏輯寬固定 720
+const PHONE_PORTRAIT_W = 720
+const PHONE_PORTRAIT_MAX_W = 600
+// 直向寬度小於此值時只顯示轉向提示
+const ROTATE_HINT_W = 320
 
 // 場地最小寬度（邏輯 px）
 export const LANE_W = 1160
@@ -113,6 +124,7 @@ const GAP = 24
 const ENEMY_BACK_W = 52
 const ENEMY_BACK_H = 72
 const ENEMY_BACK_STEP = 28
+const PHONE_ENEMY_BACK_STEP = 14
 const MAX_HAND = 10
 
 function manaSize(drop: number, font: number): { w: number; h: number } {
@@ -140,8 +152,8 @@ const right = (r: Rect) => r.x + r.w
 const overlapX = (a: Rect, x0: number, x1: number) => a.x < x1 && x0 < a.x + a.w
 
 export function computeLayout(w: number, h: number): BattleLayout {
+  if (h > w && w < PHONE_PORTRAIT_MAX_W) return phonePortraitLayout(w, h)
   const portrait = h > w
-  const rotateHint = portrait && w < 600
   const scale = portrait ? Math.min(w / PORTRAIT_W, h / DESIGN_H) : Math.min(w / DESIGN_W, h / DESIGN_H)
   const lw = w / scale
   const lh = h / scale
@@ -266,7 +278,7 @@ export function computeLayout(w: number, h: number): BattleLayout {
     scale,
     lw,
     lh,
-    rotateHint,
+    rotateHint: false,
     compact,
     arrangement,
     cssPx,
@@ -309,5 +321,148 @@ export function computeLayout(w: number, h: number): BattleLayout {
     detailSideW,
     showcaseW,
     resultFigureH,
+  }
+}
+
+// 手機直式生物：每方 2 排 × 3 格，前排靠中線；尺寸以 CSS px 換算
+function phoneBoardGeometry(cssPx: number): BoardGeometry {
+  const minionW = 80 * cssPx
+  const minionH = (minionW * MINION_CANVAS_H) / MINION_CANVAS_W
+  const frameH = (minionH * 320) / MINION_CANVAS_H
+  const rowOffset = frameH / 2 + 10 * cssPx
+  const rowPitch = frameH + 8 * cssPx
+  const spacing = Math.round(minionW * 1.25)
+  return {
+    minionW,
+    minionH,
+    frameW: (minionW * 256) / MINION_CANVAS_W,
+    frameH,
+    rowOffset,
+    spacing,
+    laneW: spacing * 2 + minionW + 32 * cssPx,
+    halfH: rowOffset + rowPitch + minionH / 2 + 10,
+    cols: 3,
+    rowsPerSide: 2,
+    rowPitch,
+  }
+}
+
+// 手機直式：由上到下為敵方英雄列、雙方戰場、動作列、我方英雄列、收合手牌
+function phonePortraitLayout(w: number, h: number): BattleLayout {
+  const scale = w / PHONE_PORTRAIT_W
+  const lw = PHONE_PORTRAIT_W
+  const lh = h / scale
+  const cssPx = 1 / scale
+  const minFont = MOBILE_MIN_FONT * cssPx
+  const cx = lw / 2
+  const mh = 8 * cssPx
+  const mv = 10 * cssPx
+  const gap = 6 * cssPx
+
+  const portraitSize = 60 * cssPx
+  const nameFont = minFont * 1.15
+  const nameH = Math.round(nameFont * 1.6)
+  const heroW = portraitSize + 10 * cssPx
+  const heroH = portraitSize + 12 + nameH
+  const drop1 = 7 * cssPx
+  const font1 = 14 * cssPx
+  // 敵方潮能只放數字與單顆水晶
+  const drop2 = 8 * cssPx
+  const font2 = 13 * cssPx
+  const mana1 = manaSize(drop1, font1)
+  const mana2 = { w: 28 + drop2 + 12 + font2 * 2.9, h: Math.max(drop2 * 1.3, font2 * 1.2) + 16 }
+  const deckFont = minFont * 1.2
+  const deckW = 44 + 10 + deckFont * 1.4 + 24
+  const deckH = Math.max(66, deckFont * 1.3)
+  const endW = 96 * cssPx
+  const endH = 52 * cssPx
+  const endTurnFont = 16 * cssPx
+  const buttonH = 48 * cssPx
+  const gear = rect(lw - 66 * cssPx, 0, 66 * cssPx, 64 * cssPx)
+
+  // 敵方英雄列：英雄置中，手牌在左，牌庫在右、潮能疊在牌庫與設定鈕下方
+  const heroP2 = rect(cx - heroW / 2, mv, heroW, heroH)
+  const p2PortraitCy = heroP2.y + nameH + portraitSize / 2
+  const backW = PHONE_ENEMY_BACK_STEP * (MAX_HAND - 1) + ENEMY_BACK_W
+  const enemyHand = rect(mh, p2PortraitCy - ENEMY_BACK_H / 2, backW, ENEMY_BACK_H)
+  const deckP2 = rect(right(heroP2) + gap, mv, deckW, deckH)
+  const manaP2 = rect(lw - mh - mana2.w, Math.max(bottom(deckP2), bottom(gear)) + gap, mana2.w, mana2.h)
+  const topBottom = Math.max(...[heroP2, enemyHand, deckP2, manaP2, gear].map(bottom))
+
+  // 手牌收合只露上緣，點擊展開扇形
+  const cardW = Math.max(lw * 0.26, 88 * cssPx)
+  const cardH = cardW * 1.4
+  const radius = cardW * 16
+  const peek = Math.max(cardH * 0.15, 48 * cssPx)
+  const collapsedTop = lh - peek
+  const maxHalf = cx - mh
+  // 扇形兩端旋轉後的角不超出舞台
+  const expandedHalf = cx - mh - cardH * 0.1
+  const expandedTop = lh - mv - fanHeight(cardW, cardH, radius, expandedHalf)
+
+  // 我方英雄列：英雄在左、潮能與牌庫在中、結束回合在右
+  const heroP1 = rect(mh, collapsedTop - gap - heroH, heroW, heroH)
+  const p1PortraitCy = heroP1.y + portraitSize / 2
+  const endTurn = rect(lw - mh - endW, p1PortraitCy - endH / 2, endW, endH)
+  const midCx = (right(heroP1) + endTurn.x) / 2
+  const stackY = heroP1.y + (heroH - mana1.h - gap - deckH) / 2
+  const manaP1 = rect(midCx - mana1.w / 2, stackY, mana1.w, mana1.h)
+  const deckP1 = rect(midCx - deckW / 2, bottom(manaP1) + gap, deckW, deckH)
+  const actions = rect(mh, heroP1.y - gap - buttonH, lw - mh * 2, buttonH)
+
+  // 戰場夾在頂列與動作列之間置中
+  const geo = phoneBoardGeometry(cssPx)
+  const boardCy = (topBottom + gap + geo.halfH + actions.y - gap - geo.halfH) / 2
+  const board = rect(cx - geo.laneW / 2, boardCy - geo.halfH, geo.laneW, geo.halfH * 2)
+  const playLine = (bottom(board) + actions.y) / 2
+
+  return {
+    scale,
+    lw,
+    lh,
+    rotateHint: w < ROTATE_HINT_W,
+    compact: true,
+    arrangement: 'portrait',
+    cssPx,
+    minFont,
+    boardCy,
+    board,
+    boardGeo: geo,
+    heroP2,
+    heroP1,
+    portraitSize,
+    nameFont,
+    manaP2,
+    manaP1,
+    manaDrop: { p1: drop1, p2: drop2 },
+    manaFont: { p1: font1, p2: font2 },
+    enemyHand,
+    deckP2,
+    deckP1,
+    deckFont,
+    endTurn,
+    endTurnFont,
+    actions,
+    buttonH,
+    gear,
+    hand: {
+      cx,
+      top: expandedTop,
+      collapsedTop,
+      liftedTop: lh - mv - cardH,
+      expandedTop,
+      cardW,
+      cardH,
+      radius,
+      maxHalf,
+      expandedHalf,
+    },
+    handRest: rect(cx - maxHalf, collapsedTop, maxHalf * 2, peek),
+    playLine,
+    // 細節卡上下排：卡在上、文字在下
+    detailCardW: lw * 0.5,
+    detailSideW: lw - 80,
+    showcaseW: Math.min((lh * 0.62) / 1.4, lw - 80),
+    resultFigureH: lh * 0.3,
   }
 }

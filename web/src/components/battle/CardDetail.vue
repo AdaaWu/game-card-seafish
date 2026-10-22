@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// hover 放大卡牌細節＋關鍵字說明；場上生物顯示目前數值；手機改橫向，完整文字放右側
+// hover 放大卡牌細節＋關鍵字說明；場上生物顯示目前數值；手機改橫向，完整文字放右側；直式上下排
 import { computed } from 'vue'
 import CardView from '@/components/CardView.vue'
 import { KEYWORDS, attackTone, cardTypeLine, healthTone, splitKeywordText } from '@/content/cardStyle'
@@ -18,6 +18,7 @@ const props = defineProps<{
   sideW: number
   minFont: number
   compact: boolean
+  stacked?: boolean
 }>()
 
 // CardView lg 的原始寬度
@@ -42,7 +43,7 @@ const style = computed(() => ({
 </script>
 
 <template>
-  <div class="detail" :class="[side, { compact }]" :style="style" data-testid="card-detail">
+  <div class="detail" :class="[side, { compact, stacked }]" :style="style" data-testid="card-detail">
     <div class="card-box" :style="{ width: `${cardW}px`, height: `${cardW * 1.4}px` }">
       <div class="card-scale" :style="{ transform: `scale(${cardW / BASE_W})` }">
         <CardView
@@ -109,6 +110,13 @@ const style = computed(() => ({
 .compact .side-info {
   max-height: var(--card-h);
   overflow-y: auto;
+}
+.detail.stacked {
+  flex-direction: column;
+  align-items: center;
+}
+.stacked .side-info {
+  max-height: calc(var(--card-h) * 0.6);
 }
 .text-panel {
   display: flex;

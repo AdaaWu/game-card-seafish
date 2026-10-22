@@ -7,11 +7,10 @@ import { useSettingsStore } from './stores/settings'
 import './style.css'
 import './styles/tokens.css'
 
-// Google Fonts：Noto Sans TC 與圓體數字
+// Google Fonts：Noto Sans TC 作為中文備援字體
 const fontLink = document.createElement('link')
 fontLink.rel = 'stylesheet'
-fontLink.href =
-  'https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&family=Noto+Sans+TC:wght@500;700;900&display=swap'
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap'
 document.head.appendChild(fontLink)
 document.documentElement.lang = 'zh-Hant-TW'
 

@@ -61,6 +61,17 @@ function openSettings() {
 </template>
 
 <style>
+@font-face {
+  font-family: 'SeafishRound';
+  src: url('/fonts/huninn-2.1-subset.woff2') format('woff2');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'SeafishDigit';
+  src: url('/fonts/baloo2-digits.woff2') format('woff2');
+  font-weight: 400 800;
+  font-display: swap;
+}
 :root {
   --c-cream: #fbf6ec;
   --c-ink: #3e3550;
@@ -75,11 +86,12 @@ function openSettings() {
   --c-heal: #4fa866;
   --c-buff: #3e9e5c;
   --c-debuff: #d9534f;
+  --c-debuff-on-dark: #ffb4b4;
   --c-disabled: #b8b2bf;
   --radius: 20px;
   --shadow: 0 8px 24px rgba(62, 53, 80, 0.14);
-  --font-ui: 'jf-openhuninn-2.0', 'jf open 粉圓', 'Noto Sans TC', 'M PLUS Rounded 1c', sans-serif;
-  --font-num: 'M PLUS Rounded 1c', 'Baloo 2', 'Noto Sans TC', sans-serif;
+  --font-ui: 'SeafishRound', 'Noto Sans TC', sans-serif;
+  --font-num: 'SeafishDigit', 'SeafishRound', 'Noto Sans TC', sans-serif;
   color-scheme: light;
 }
 html,

@@ -46,6 +46,34 @@ describe('卡面新版面比例', () => {
     expect(l.gem.cy).toBe(l.ribbon.y + l.ribbon.h)
   })
 
+  it('行數 0 時文字框只放類型列，高度 56，插畫高度拉到上限 602，插畫仍 ≥62% 卡高', () => {
+    const l = cardFaceLayout('creature', 0)
+    expect(l.text.h).toBe(56)
+    expect(l.text.y + l.text.h).toBe(682)
+    expect(l.art.h).toBe(602)
+    expect(l.art.h / CARD_H).toBeGreaterThanOrEqual(0.62)
+  })
+
+  it('行數 0 時插畫下緣與文字框上緣間距 ≤ 8', () => {
+    const l = cardFaceLayout('creature', 0)
+    expect(l.text.y - (l.art.y + l.art.h)).toBeLessThanOrEqual(8)
+  })
+
+  it('行數 0 的緞帶與攻防位置跟著插畫下緣', () => {
+    const l = cardFaceLayout('creature', 0)
+    const bottom = l.art.y + l.art.h
+    expect(bottom).toBe(620)
+    expect(l.ribbon.y + l.ribbon.h).toBe(bottom - 4)
+    expect(l.attack.y + l.attack.d).toBe(bottom - 2)
+    expect(l.health.y + l.health.d).toBe(bottom - 2)
+  })
+
+  it('法術行數 0 的文字框仍是 110', () => {
+    const l = cardFaceLayout('spell', 0)
+    expect(l.text.h).toBe(110)
+    expect(l.text.y + l.text.h).toBe(682)
+  })
+
   it('法術緞帶較寬', () => {
     expect(cardFaceLayout('spell', 2).ribbon).toMatchObject({ x: 50, w: 400 })
     expect(cardFaceLayout('creature', 2).ribbon).toMatchObject({ x: 96, w: 308 })

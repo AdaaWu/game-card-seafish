@@ -28,11 +28,20 @@ export interface CardFaceValues {
 export const TEXTURE_WIDTH = 512
 export const TEXTURE_HEIGHT = 717
 
-const FONT_UI = '"jf-openhuninn-2.0", "jf open 粉圓", "Noto Sans TC", "M PLUS Rounded 1c", sans-serif'
-const FONT_NUM = '"M PLUS Rounded 1c", "Baloo 2", "Noto Sans TC", sans-serif'
+const FONT_UI = '"SeafishRound", "Noto Sans TC", sans-serif'
+const FONT_NUM = '"SeafishDigit", "SeafishRound", "Noto Sans TC", sans-serif'
 const INK = '#3E3550'
 const NO_LINE_START = '，。、！？」）：；…'
 const NO_LINE_END = '「（'
+
+// Canvas 不會觸發字型下載，繪製前先載入主字體與數字字體
+export async function loadCardFonts(): Promise<void> {
+  if (typeof document === 'undefined' || !document.fonts) return
+  await Promise.all([
+    document.fonts.load('24px SeafishRound'),
+    document.fonts.load('800 40px SeafishDigit', '0123456789'),
+  ]).catch(() => undefined)
+}
 
 const imageCache = new Map<string, Promise<HTMLImageElement | null>>()
 
@@ -385,7 +394,7 @@ export async function createCardCanvas(card: Card, values: CardFaceValues = {}):
   canvas.height = TEXTURE_HEIGHT
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
-  await document.fonts?.ready
+  await loadCardFonts()
   const url = cardArtUrl(card.id)
   const urls = cardPartUrls(card.faction, card.rarity)
   const [image, ...loaded] = await Promise.all([
