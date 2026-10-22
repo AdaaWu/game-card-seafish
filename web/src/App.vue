@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import BubbleLayer from '@/components/ui/BubbleLayer.vue'
+import GameButton from '@/components/ui/GameButton.vue'
+import { PAGE_FADE_MS, pageTransition } from '@/components/ui/pageTransition'
 import ScreenBackground from '@/components/ui/ScreenBackground.vue'
 import { screenForRoute } from '@/components/ui/screenBackground'
 import { audio } from '@/fx/audio'
@@ -13,6 +15,14 @@ const router = useRouter()
 const progress = useProgressStore()
 const showSettings = ref(false)
 const screen = computed(() => screenForRoute(route.name))
+
+const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+const reducedMotion = ref(reducedQuery.matches)
+const onReducedChange = (e: MediaQueryListEvent) => (reducedMotion.value = e.matches)
+reducedQuery.addEventListener('change', onReducedChange)
+onUnmounted(() => reducedQuery.removeEventListener('change', onReducedChange))
+const transition = computed(() => pageTransition(reducedMotion.value))
+const fadeMs = `${PAGE_FADE_MS}ms`
 
 // 對戰回報結果後回到章節地圖播放戰後對話
 watch(
@@ -34,14 +44,18 @@ function openSettings() {
       <ScreenBackground :screen="screen" />
       <BubbleLayer />
     </div>
-    <RouterView />
-    <button v-if="route.name !== 'title'" class="gear" type="button" aria-label="設定" @click="openSettings">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
+    <RouterView v-slot="{ Component }">
+      <Transition v-bind="transition">
+        <component :is="Component" />
+      </Transition>
+    </RouterView>
+    <GameButton v-if="route.name !== 'title'" class="gear" variant="icon" aria-label="設定" @click="openSettings">
+      <svg viewBox="0 0 24 24" fill-rule="evenodd" aria-hidden="true">
         <path
           d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM10.3 2h3.4l.5 2.6 2 .9 2.2-1.5 2.4 2.4-1.5 2.2.9 2 2.6.5v3.4l-2.6.5-.9 2 1.5 2.2-2.4 2.4-2.2-1.5-2 .9-.5 2.6h-3.4l-.5-2.6-2-.9-2.2 1.5-2.4-2.4 1.5-2.2-.9-2L2 13.7v-3.4l2.6-.5.9-2L4 5.6 6.4 3.2l2.2 1.5 2-.9z"
         />
       </svg>
-    </button>
+    </GameButton>
     <SettingsDialog v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>
@@ -170,29 +184,20 @@ button {
   z-index: 0;
   pointer-events: none;
 }
-.gear {
+/* 加上層級選擇器，蓋過 GameButton 自身的 position */
+.app-root .gear {
   position: fixed;
   top: 14px;
   right: 16px;
   z-index: 50;
-  width: 48px;
-  height: 48px;
-  border: none;
-  border-radius: 50%;
-  background: #fffdf7;
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: transform 0.2s;
 }
-.gear svg {
-  width: 26px;
-  height: 26px;
-  fill: var(--c-lavender-deep);
-  fill-rule: evenodd;
+/* 頁面轉場只改透明度 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity v-bind(fadeMs) ease;
 }
-.gear:hover {
-  transform: rotate(30deg);
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
 }
 </style>
