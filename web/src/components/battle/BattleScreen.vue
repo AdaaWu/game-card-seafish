@@ -89,7 +89,8 @@ const layout = shallowRef(computeLayout(DESIGN_W, DESIGN_H))
 const scale = computed(() => layout.value.scale)
 const playLine = computed(() => layout.value.playLine)
 const loading = ref(true)
-const portrait = computed(() => layout.value.rotateHint)
+const rotateHint = computed(() => layout.value.rotateHint)
+const phonePortrait = computed(() => layout.value.arrangement === 'portrait')
 // 手機橫向：手牌預設收合，點手牌區展開
 const handOpen = ref(false)
 const handState = computed(() => (!layout.value.compact ? 'fan' : handOpen.value ? 'expanded' : 'collapsed'))
@@ -121,7 +122,7 @@ type Mode =
 
 const mode = shallowRef<Mode>({ kind: 'idle' })
 const pointer = reactive({ x: 0, y: 0 })
-const drag = shallowRef<{ id: string; sx: number; sy: number; active: boolean } | null>(null)
+const drag = shallowRef<{ id: string; sx: number; sy: number; active: boolean; touch: boolean } | null>(null)
 const attackDrag = shallowRef<{ id: string; sx: number; sy: number } | null>(null)
 const handHover = ref<string | null>(null)
 const minionHover = ref<string | null>(null)
@@ -137,14 +138,30 @@ const detailView = computed(() => {
   const d = detail.value
   if (!d) return null
   const l = layout.value
-  const base = { card: d.card, x: d.x, y: d.y, side: d.side, cardW: l.detailCardW, sideW: l.detailSideW, minFont: l.minFont, compact: l.compact }
+  const base = {
+    card: d.card,
+    x: d.x,
+    y: d.y,
+    side: d.side,
+    cardW: l.detailCardW,
+    sideW: l.detailSideW,
+    minFont: l.minFont,
+    compact: l.compact,
+    stacked: phonePortrait.value,
+  }
   if (!d.minionId) return base
   const pid = ownerOf(d.minionId)
   const vm = pid ? view.value?.players[pid].board.find((m) => m.instanceId === d.minionId) : undefined
   if (!vm) return null
   return { ...base, attack: vm.attack, health: vm.health, maxHealth: vm.maxHealth, keywords: vm.keywords }
 })
-const detailW = computed(() => layout.value.detailCardW + 12 + layout.value.detailSideW)
+// 直式細節卡上下排，寬度取卡與文字區較寬者
+const detailW = computed(() => {
+  const l = layout.value
+  return phonePortrait.value ? Math.max(l.detailCardW, l.detailSideW) : l.detailCardW + 12 + l.detailSideW
+})
+// 直式細節卡高度：卡高加上限 0.6 卡高的文字區
+const detailH = computed(() => layout.value.detailCardW * 1.4 * (phonePortrait.value ? 1.6 : 1) + 12)
 const rounds = computed(() => roundsOf(view.value?.turn ?? 1))
 
 const locked = computed(() => store.busy || loading.value || outcome.value !== null)
@@ -268,13 +285,22 @@ const boardFullTip = computed(() => {
   return (view.value?.players.p1.board.length ?? 0) >= MAX_BOARD
 })
 
+// CardView sm 原始尺寸
+const GHOST_W = 150
+const GHOST_H = 210
 const dragGhost = computed(() => {
   const d = drag.value
   if (!d?.active || !view.value) return null
   const c = view.value.players.p1.hand.find((h) => h.instanceId === d.id)
   const card = c ? cards[c.cardId] : undefined
   if (!card) return null
-  return { card, small: pointer.y < playLine.value }
+  const small = pointer.y < playLine.value
+  if (!(d.touch && phonePortrait.value)) return { card, small, x: pointer.x, y: pointer.y }
+  // 直式觸控：預覽卡在手指上方 80px，夾在舞台內
+  const l = layout.value
+  const x = clamp(pointer.x, GHOST_W * 0.55, l.lw - GHOST_W * 0.55)
+  const y = clamp(pointer.y - 80 * l.cssPx, GHOST_H * 0.66, l.lh - GHOST_H * 0.44)
+  return { card, small, x, y }
 })
 
 // ---------- 座標 ----------
@@ -417,7 +443,8 @@ function focusRects(f: Focus): Rect[] {
   if (f === 'hand') return one(unionOf([...(ui?.querySelectorAll('[data-hand] .hand-inner') ?? [])].map(rectOfEl)))
   if (f === 'myBoard') {
     const g = l.boardGeo
-    return [{ x: (l.lw - g.laneW) / 2, y: l.boardCy + g.rowOffset - g.frameH / 2 - 20, w: g.laneW, h: g.frameH + 40 }]
+    const h = g.frameH + 40 + (g.rowsPerSide - 1) * g.rowPitch
+    return [{ x: (l.lw - g.laneW) / 2, y: l.boardCy + g.rowOffset - g.frameH / 2 - 20, w: g.laneW, h }]
   }
   if (f === 'myMinions') return minionRects('p1')
   if (f === 'enemyMinions') return minionRects('p2')
@@ -607,7 +634,7 @@ function onHandClick(id: string): void {
 function onHandRelease(id: string): void {
   if (rejectCard(id)) return
   const card = cardOfHand(id)
-  if (card?.type === 'creature') place(id, field?.insertIndexAt(pointer.x) ?? 0)
+  if (card?.type === 'creature') place(id, field?.insertIndexAt(pointer.x, pointer.y) ?? 0)
   else castOrTarget(id, true)
 }
 
@@ -664,7 +691,7 @@ function onHandDown(id: string, e: PointerEvent): void {
   const p = toLogical(e)
   pointer.x = p.x
   pointer.y = p.y
-  drag.value = { id, sx: p.x, sy: p.y, active: false }
+  drag.value = { id, sx: p.x, sy: p.y, active: false, touch: e.pointerType === 'touch' }
 }
 
 function onRootDown(e: PointerEvent): void {
@@ -696,7 +723,7 @@ function onRootDown(e: PointerEvent): void {
   if (m.kind === 'card') {
     const card = cardOfHand(m.id)
     if (p.y >= playLine.value) cancelMode()
-    else if (card?.type === 'creature') place(m.id, field?.insertIndexAt(p.x) ?? 0)
+    else if (card?.type === 'creature') place(m.id, field?.insertIndexAt(p.x, p.y) ?? 0)
     else void commit({ type: 'playCard', cardInstanceId: m.id })
     return
   }
@@ -729,7 +756,7 @@ function onMove(e: PointerEvent): void {
   const m = mode.value
   const draggingCard = drag.value?.active ? drag.value.id : m.kind === 'card' ? m.id : null
   if (draggingCard && cardOfHand(draggingCard)?.type === 'creature' && p.y < playLine.value && playable.value.has(draggingCard)) {
-    field?.showInsertPreview(field.insertIndexAt(p.x), FACTION_STYLE[cardOfHand(draggingCard)!.faction].main)
+    field?.showInsertPreview(field.insertIndexAt(p.x, p.y), FACTION_STYLE[cardOfHand(draggingCard)!.faction].main)
   } else field?.showInsertPreview(null)
   if (!drag.value?.active) updateMinionHover(p.x, p.y)
 }
@@ -805,6 +832,10 @@ function onHandEnter(id: string): void {
     const c = centerOfEl(uiEl.value?.querySelector(`[data-hand="${id}"]`) ?? null)
     if (!card || !c || handState.value === 'collapsed') return
     const l = layout.value
+    if (phonePortrait.value) {
+      detail.value = { card, x: (l.lw - detailW.value) / 2, y: 20, side: 'right' }
+      return
+    }
     const h = l.detailCardW * 1.4
     const x = clamp(c.x - l.detailCardW / 2, 20, l.lw - detailW.value - 20)
     const y = clamp(l.playLine - h - 20, 20, l.lh - h - 20)
@@ -833,6 +864,12 @@ function updateMinionHover(x: number, y: number): void {
     const card = vm ? cards[vm.cardId] : undefined
     if (!vm || !at || !card) return
     const l = layout.value
+    // 直式：生物在下半部時細節卡放上方，反之放下方
+    if (phonePortrait.value) {
+      const y = at.y > l.lh / 2 ? 20 : l.lh - detailH.value - 20
+      detail.value = { card, minionId: id, x: (l.lw - detailW.value) / 2, y, side: 'right' }
+      return
+    }
     const h = l.detailCardW * 1.4
     const side = at.x < l.lw / 2 ? 'right' : 'left'
     const off = l.boardGeo.frameW / 2 + 20
@@ -1023,18 +1060,18 @@ const uiStyle = computed(() => {
 
 <template>
   <div class="battle-outer" @contextmenu.prevent>
-    <div v-if="portrait" class="rotate-hint" role="alert">
+    <div v-if="rotateHint" class="rotate-hint" role="alert">
       <span class="rotate-icon" aria-hidden="true">⟳</span>
       請將裝置轉為橫向
       <GameButton variant="secondary" data-testid="rotate-back" @click="router.push('/menu')">返回選單</GameButton>
     </div>
-    <div ref="stageEl" class="stage" :class="{ gray: fx.lowSaturation, hidden: portrait }">
+    <div ref="stageEl" class="stage" :class="{ gray: fx.lowSaturation, hidden: rotateHint }">
       <div ref="glEl" class="gl" />
       <BubbleLayer />
       <div
         ref="uiEl"
         class="ui"
-        :class="{ locked, compact: layout.compact }"
+        :class="{ locked, compact: layout.compact, portrait: phonePortrait }"
         :style="uiStyle"
         data-testid="battle-ui"
         @pointerdown="onRootDown"
@@ -1063,6 +1100,7 @@ const uiStyle = computed(() => {
             :max-mana="view.players.p2.maxMana"
             :drop="layout.manaDrop.p2"
             :font="layout.manaFont.p2"
+            :single="phonePortrait"
           />
           <div class="enemy-hand" :style="pos(layout.enemyHand)" :aria-label="`對手手牌 ${view.players.p2.hand.length} 張`">
             <span v-for="c in view.players.p2.hand" :key="c.instanceId" class="back" />
@@ -1165,7 +1203,7 @@ const uiStyle = computed(() => {
         <div v-if="boardFullTip" class="board-full-tip" :style="{ left: `${pointer.x + 36}px`, top: `${pointer.y - 70}px` }" data-testid="board-full-tip">
           場地已滿
         </div>
-        <div v-if="dragGhost" class="drag-ghost" :class="{ small: dragGhost.small }" :style="{ left: `${pointer.x}px`, top: `${pointer.y}px` }">
+        <div v-if="dragGhost" class="drag-ghost" :class="{ small: dragGhost.small }" :style="{ left: `${dragGhost.x}px`, top: `${dragGhost.y}px` }">
           <CardView :card="dragGhost.card" size="sm" variant="hand" />
         </div>
 
@@ -1319,6 +1357,13 @@ const uiStyle = computed(() => {
 .back:first-child {
   margin-left: 0;
 }
+/* 直式敵方手牌間距 14 */
+.ui.portrait .back {
+  margin-left: -38px;
+}
+.ui.portrait .back:first-child {
+  margin-left: 0;
+}
 .deck {
   position: absolute;
   display: flex;
@@ -1389,6 +1434,16 @@ const uiStyle = computed(() => {
   align-items: flex-end;
   justify-content: flex-start;
   gap: 12px;
+}
+/* 直式動作列橫排置中 */
+.ui.portrait .target-actions {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+.ui.portrait .speed-tip {
+  align-items: center;
+  justify-content: center;
 }
 .speed-tip {
   position: absolute;

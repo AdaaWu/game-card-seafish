@@ -1,14 +1,17 @@
 <script setup lang="ts">
-// 潮能水晶：10 顆水滴，旁邊一定有數字；深色底板維持對比
+// 潮能水晶：10 顆水滴，旁邊一定有數字；深色底板維持對比；single 時只放一顆水晶
 withDefaults(
-  defineProps<{ mana: number; maxMana: number; preview?: number; warn?: number; drop: number; font: number }>(),
-  { preview: 0, warn: 0 },
+  defineProps<{ mana: number; maxMana: number; preview?: number; warn?: number; drop: number; font: number; single?: boolean }>(),
+  { preview: 0, warn: 0, single: false },
 )
 </script>
 
 <template>
   <div class="mana" :style="{ '--d': `${drop}px`, '--f': `${font}px` }" :aria-label="`潮能 ${mana}/${maxMana}`">
-    <div class="drops">
+    <div v-if="single" class="drops">
+      <span class="drop" :class="{ full: mana > 0 }" />
+    </div>
+    <div v-else class="drops">
       <span
         v-for="i in 10"
         :key="i"
