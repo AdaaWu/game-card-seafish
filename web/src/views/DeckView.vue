@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CardView from '@/components/CardView.vue'
+import GameButton from '@/components/ui/GameButton.vue'
+import PageTitle from '@/components/ui/PageTitle.vue'
 import { collectibleCards, decks, getCard } from '@/content'
+import { assetUrls } from '@/content/assetUrls'
 import { FACTION_STYLE, cardKeywords } from '@/content/cardStyle'
 import type { Card, Faction } from '@/content/types'
 import { audio } from '@/fx/audio'
 import { PLAYER_DECK_ID } from '@/stores/progress'
+import { collectionColumns } from './collectionGrid'
 
 const router = useRouter()
 
@@ -17,6 +21,15 @@ const tab = ref<'collection' | 'deck'>('collection')
 const factionFilter = ref<Faction | null>(null)
 const costFilter = ref<number | null>(null)
 const zoomed = ref<Card | null>(null)
+const emptySticker = assetUrls['stickers/role1-08.webp'] ?? null
+
+const columns = ref(collectionColumns(window.innerWidth, window.innerHeight))
+function onResize() {
+  columns.value = collectionColumns(window.innerWidth, window.innerHeight)
+}
+onMounted(() => window.addEventListener('resize', onResize))
+onBeforeUnmount(() => window.removeEventListener('resize', onResize))
+const gridStyle = computed(() => ({ gridTemplateColumns: `repeat(${columns.value}, minmax(0, 1fr))` }))
 
 const byCost = (a: Card, b: Card) => a.cost - b.cost || a.id.localeCompare(b.id)
 
@@ -50,6 +63,11 @@ function toggleCost(c: number) {
   audio.play('sfx_ui_click')
   costFilter.value = costFilter.value === c ? null : c
 }
+function clearFilters() {
+  audio.play('sfx_ui_click')
+  factionFilter.value = null
+  costFilter.value = null
+}
 function zoom(card: Card) {
   audio.play('sfx_card_hover')
   zoomed.value = card
@@ -62,16 +80,30 @@ function back() {
 
 <template>
   <main class="page deck">
-    <button class="back btn ghost" type="button" @click="back">返回</button>
-    <h1>牌組／收藏</h1>
+    <GameButton class="back" variant="secondary" size="sm" @click="back">返回</GameButton>
+    <div class="head">
+      <PageTitle class="title" level="page" prefix="leaf" faction="leaf">牌組／收藏</PageTitle>
 
-    <div class="tabs" role="tablist">
-      <button role="tab" type="button" :aria-selected="tab === 'collection'" :class="{ on: tab === 'collection' }" @click="tab = 'collection'">
-        收藏
-      </button>
-      <button role="tab" type="button" :aria-selected="tab === 'deck'" :class="{ on: tab === 'deck' }" @click="tab = 'deck'">
-        起始牌組
-      </button>
+      <div class="tabs" role="tablist">
+        <GameButton
+          role="tab"
+          :variant="tab === 'collection' ? 'primary' : 'secondary'"
+          size="sm"
+          :aria-selected="tab === 'collection'"
+          @click="tab = 'collection'"
+        >
+          收藏
+        </GameButton>
+        <GameButton
+          role="tab"
+          :variant="tab === 'deck' ? 'primary' : 'secondary'"
+          size="sm"
+          :aria-selected="tab === 'deck'"
+          @click="tab = 'deck'"
+        >
+          起始牌組
+        </GameButton>
+      </div>
     </div>
 
     <template v-if="tab === 'collection'">
@@ -109,23 +141,27 @@ function back() {
         <span class="count">{{ filtered.length }} 張</span>
       </div>
 
-      <div class="grid">
+      <div class="grid" :style="gridStyle">
         <button v-for="card in filtered" :key="card.id" type="button" class="card-btn" @click="zoom(card)">
           <CardView :card="card" size="md" />
         </button>
-        <p v-if="filtered.length === 0" class="empty">沒有符合條件的卡牌</p>
+        <div v-if="filtered.length === 0" class="empty">
+          <img v-if="emptySticker" :src="emptySticker" alt="" draggable="false" />
+          <p>沒有符合條件的卡牌</p>
+          <GameButton variant="text" size="sm" @click="clearFilters">清除篩選</GameButton>
+        </div>
       </div>
     </template>
 
     <section v-else class="deck-panel panel">
       <header>
-        <h2>葉陣營起始牌組</h2>
+        <PageTitle level="section" prefix="leaf" faction="leaf">葉陣營起始牌組</PageTitle>
         <span class="size" :class="{ short: deckSize < 30 }">{{ deckSize }} / 30</span>
       </header>
       <div class="curve" aria-label="費用曲線">
         <div v-for="(n, c) in curve" :key="c" class="bar-col">
           <span class="bar-n">{{ n }}</span>
-          <div class="bar" :style="{ height: `${(n / curveMax) * 100}%` }" />
+          <div v-if="n > 0" class="bar" :style="{ height: `${(n / curveMax) * 100}%` }" />
           <span class="bar-c">{{ c === 7 ? '7+' : c }}</span>
         </div>
       </div>
@@ -152,7 +188,7 @@ function back() {
             </div>
           </div>
           <p class="flavor panel">{{ zoomed.flavor }}</p>
-          <button class="btn" type="button" @click="zoomed = null">關閉</button>
+          <GameButton variant="primary" @click="zoomed = null">關閉</GameButton>
         </aside>
       </div>
     </div>
@@ -172,32 +208,15 @@ function back() {
   left: 16px;
   z-index: 40;
 }
-h1 {
-  margin: 0;
-  font-size: 36px;
-  color: #fff;
-  -webkit-text-stroke: 8px var(--c-lavender-deep);
-  paint-order: stroke fill;
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 .tabs {
   display: inline-flex;
-  background: rgba(255, 253, 247, 0.8);
-  border-radius: 999px;
-  padding: 4px;
-}
-.tabs button {
-  border: none;
-  background: transparent;
-  min-height: 44px;
-  min-width: 110px;
-  border-radius: 999px;
-  font-size: 17px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.tabs button.on {
-  background: var(--c-lavender-deep);
-  color: #fff;
+  gap: 8px;
 }
 .filters {
   display: flex;
@@ -205,7 +224,7 @@ h1 {
   gap: 12px 20px;
   align-items: center;
   padding: 12px 18px;
-  width: min(1120px, 100%);
+  width: min(1320px, 100%);
   box-sizing: border-box;
 }
 .group {
@@ -226,6 +245,14 @@ h1 {
   font-weight: 800;
   font-size: 15px;
   cursor: pointer;
+}
+.chip:focus,
+.row:focus {
+  outline: none;
+}
+.chip:focus-visible,
+.row:focus-visible {
+  box-shadow: var(--btn-focus-ring);
 }
 .chip svg {
   width: 20px;
@@ -260,26 +287,50 @@ svg.stroke path {
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 200px);
-  justify-content: center;
   gap: 22px 18px;
-  width: min(1120px, 100%);
+  width: min(1320px, 100%);
   padding-top: 24px;
 }
+.grid :deep(.card-view) {
+  width: 100% !important;
+}
 .card-btn {
+  min-width: 0;
   border: none;
+  border-radius: 16px;
   background: none;
   padding: 0;
   cursor: pointer;
-  transition: transform 0.12s;
+  transition: filter 120ms;
 }
-.card-btn:hover {
-  transform: translateY(-6px) scale(1.03);
+@media (hover: hover) {
+  .card-btn:hover {
+    filter: drop-shadow(0 0 10px rgba(246, 227, 161, 0.95));
+  }
+}
+.card-btn:focus {
+  outline: none;
+}
+.card-btn:focus-visible {
+  box-shadow: var(--btn-focus-ring);
 }
 .empty {
   grid-column: 1 / -1;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   color: var(--c-ink-soft);
+}
+.empty img {
+  width: 160px;
+  height: auto;
+}
+.empty p {
+  margin: 0;
+  padding: 2px 12px;
+  border-radius: 10px;
+  background: rgba(255, 253, 247, 0.85);
 }
 .deck-panel {
   width: min(560px, 100%);
@@ -290,10 +341,6 @@ svg.stroke path {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-}
-.deck-panel h2 {
-  margin: 0;
-  font-size: 22px;
 }
 .size {
   font-family: var(--font-num);
@@ -319,9 +366,8 @@ svg.stroke path {
 }
 .bar {
   width: 70%;
-  min-height: 2px;
   border-radius: 6px 6px 2px 2px;
-  background: var(--c-lavender);
+  background: linear-gradient(180deg, var(--btn-primary-300), var(--btn-primary-500));
 }
 .bar-n,
 .bar-c {
@@ -425,13 +471,41 @@ svg.stroke path {
   color: var(--c-ink-soft);
   font-style: italic;
 }
-@media (max-width: 720px) {
+/* 手機橫向：標題縮小、篩選收成一行橫向捲動 */
+@media (max-height: 500px) {
+  .deck {
+    gap: 8px;
+    padding-top: 12px;
+  }
+  .head {
+    flex-direction: row;
+    gap: 12px;
+  }
+  .title {
+    --title-page-h: 48px;
+    --title-page-fs: 24px;
+    --title-page-prefix: 30px;
+  }
+  .filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 6px 12px;
+  }
+  .group {
+    flex-wrap: nowrap;
+  }
+  .chip {
+    flex: none;
+  }
+  .count {
+    flex: none;
+  }
   .grid {
-    grid-template-columns: repeat(auto-fill, 150px);
+    gap: 14px 12px;
+    padding-top: 8px;
   }
-  .grid :deep(.card-view) {
-    width: 150px !important;
-  }
+}
+@media (max-width: 720px) {
   .deck-panel {
     padding: 16px;
   }
