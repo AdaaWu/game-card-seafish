@@ -96,14 +96,17 @@ onUnmounted(() => {
             <span v-if="i > 0" class="stat-sep" aria-hidden="true">｜</span>{{ s.label }} <b class="num">{{ s.value }}</b>
           </p>
         </div>
-        <div v-if="rewards.length" class="rewards" data-testid="result-rewards">
-          <div v-for="c in rewards" :key="c.id" class="reward" data-testid="result-reward">
-            <div ref="flips" class="flip">
-              <div class="face front"><CardView :card="c" size="md" /></div>
-              <div class="face back" aria-hidden="true" />
+        <template v-if="rewards.length">
+          <h3 class="rewards-title" data-testid="result-rewards-title">獲得卡片</h3>
+          <div class="rewards" data-testid="result-rewards">
+            <div v-for="c in rewards" :key="c.id" class="reward" data-testid="result-reward">
+              <div ref="flips" class="flip">
+                <div class="face front"><CardView :card="c" size="md" /></div>
+                <div class="face back" aria-hidden="true" />
+              </div>
             </div>
           </div>
-        </div>
+        </template>
         <div class="actions">
           <template v-if="showButton">
             <GameButton
@@ -223,6 +226,12 @@ onUnmounted(() => {
   font-family: var(--font-num);
 }
 /* 獎勵卡：依序翻開一次，不循環 */
+.rewards-title {
+  margin: 0 0 -8px;
+  font-size: max(26px, var(--min-font, 0px));
+  font-weight: 800;
+  color: var(--c-ink);
+}
 .rewards {
   display: flex;
   gap: 24px;

@@ -1,5 +1,7 @@
 // 臨時 e2e：測試頁開打，出牌、結束回合、等 AI 回合，確認沒有 console error
 import { expect, test, type Page } from '@playwright/test'
+import { computeLayout } from '../src/render/battle/battleLayout'
+import { slotPos } from '../src/render/battle/insertPreview'
 
 const SHOTS = '/private/tmp/claude-501/battle-shots'
 // 5173 被其他專案占用時，用 BATTLE_BASE 指定本專案的 dev server
@@ -152,5 +154,62 @@ test('測試頁：完整打完一場並依戰果離開', async ({ page }) => {
   await page.screenshot({ path: `${SHOTS}/05-result.png` })
   await exit.click()
   await expect(page.getByTestId('last-result')).toBeVisible()
+  expect(errors).toEqual([])
+})
+
+// 從 pinia 讀引擎狀態
+async function engine(page: Page): Promise<{ turn: number; active: string; myBoard: number }> {
+  return page.evaluate(() => {
+    const el = document.querySelector('#app') as unknown as { __vue_app__: { config: { globalProperties: { $pinia: { _s: Map<string, Record<string, unknown>> } } } } }
+    const battle = el.__vue_app__.config.globalProperties.$pinia._s.get('battle') as {
+      state: { turn: number; activePlayer: string; players: Record<string, { board: unknown[] }> }
+    }
+    const s = battle.state
+    return { turn: s.turn, active: s.activePlayer, myBoard: s.players.p1!.board.length }
+  })
+}
+
+// 我方唯一一隻生物的頁面座標
+async function myOnlyMinion(page: Page): Promise<{ x: number; y: number }> {
+  const box = await page.getByTestId('battle-ui').boundingBox()
+  if (!box) throw new Error('找不到戰場')
+  const l = computeLayout(box.width, box.height)
+  const p = slotPos(0, 1, l.boardGeo)
+  return { x: box.x + (l.lw / 2 + p.x) * l.scale, y: box.y + (l.boardCy + l.boardGeo.rowOffset) * l.scale }
+}
+
+// seed 4 對 ai-tide：第 1 回合出 1 費生物，第 3 回合把敵方英雄設為 1 血再攻擊
+test('測試頁：固定勝利時結算顯示獲得卡片與 3 張獎勵', async ({ page }) => {
+  test.setTimeout(300_000)
+  const errors = collectErrors(page)
+  await page.setViewportSize({ width: 1600, height: 900 })
+  await page.goto(SANDBOX)
+  await page.getByTestId('seed').fill('4')
+  await page.getByTestId('opponent-ai-tide').click()
+  await waitMyTurn(page)
+  await playOne(page)
+  await expect.poll(async () => (await engine(page)).myBoard, { timeout: 30_000 }).toBe(1)
+  await expect.poll(async () => (await engine(page)).turn, { timeout: 120_000 }).toBeGreaterThanOrEqual(3)
+  await waitMyTurn(page)
+  expect((await engine(page)).myBoard).toBe(1)
+
+  await page.evaluate(() => {
+    const el = document.querySelector('#app') as unknown as { __vue_app__: { config: { globalProperties: { $pinia: { _s: Map<string, Record<string, unknown>> } } } } }
+    const battle = el.__vue_app__.config.globalProperties.$pinia._s.get('battle') as {
+      state: { players: Record<string, { hero: { health: number; armor: number } }> }
+    }
+    battle.state.players.p2!.hero.health = 1
+    battle.state.players.p2!.hero.armor = 0
+  })
+  const me = await myOnlyMinion(page)
+  await page.mouse.click(me.x, me.y)
+  await expect(page.locator('svg.arrow')).toHaveCount(1)
+  await page.locator('[data-hero="p2"] .portrait-wrap').click({ force: true })
+
+  const result = page.locator('.result')
+  await expect(result).toBeVisible({ timeout: 30_000 })
+  await expect(result).toHaveClass(/win/)
+  await expect(page.getByTestId('result-rewards-title')).toHaveText('獲得卡片')
+  await expect(page.getByTestId('result-rewards').getByTestId('result-reward')).toHaveCount(3)
   expect(errors).toEqual([])
 })
