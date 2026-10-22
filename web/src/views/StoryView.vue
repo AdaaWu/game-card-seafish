@@ -4,12 +4,15 @@ import { useRouter } from 'vue-router'
 import CharacterPortrait from '@/components/CharacterPortrait.vue'
 import DialogueOverlay from '@/components/DialogueOverlay.vue'
 import OpeningVideo from '@/components/OpeningVideo.vue'
+import GameButton from '@/components/ui/GameButton.vue'
+import PageTitle from '@/components/ui/PageTitle.vue'
 import { story } from '@/content'
-import { FACTION_STYLE } from '@/content/cardStyle'
+import { portraitUrl, uiImageUrl } from '@/content/cardStyle'
 import type { DialogueLine, StoryBattle } from '@/content/types'
 import { audio } from '@/fx/audio'
 import { useProgressStore } from '@/stores/progress'
 import { useSettingsStore } from '@/stores/settings'
+import { chapterTitleStyle, isBossBattle, nodePortraitId, nodeVisual, pathSlice } from './storyMap'
 
 const router = useRouter()
 const progress = useProgressStore()
@@ -19,10 +22,40 @@ const selectedId = ref<string | null>(null)
 const dialogue = ref<{ lines: DialogueLine[]; battle: StoryBattle; phase: 'pre' | 'after' } | null>(null)
 const justUnlockedId = ref<string | null>(null)
 const showOpening = ref(false)
+const failedFigure = ref(false)
 
 const selected = computed(() => story.chapters.flatMap((c) => c.battles).find((b) => b.id === selectedId.value) ?? null)
+const selectedFigure = computed(() => (selected.value ? portraitUrl(nodePortraitId(selected.value.enemy.name)) : null))
 
-const STATUS_LABEL = { locked: '未解鎖', available: '可挑戰', cleared: '已通關' } as const
+const sliceUrl = (p: string) => uiImageUrl(p, true) ?? ''
+const bgImage = (p: string) => {
+  const u = uiImageUrl(p, true)
+  return u ? `url("${u}")` : 'none'
+}
+const panelStyle = { borderImageSource: bgImage('panels/panel') }
+const nameplateStyle = { borderImageSource: bgImage('panels/nameplate') }
+const lockUrl = sliceUrl('icons/icon-lock')
+
+const chapters = computed(() =>
+  story.chapters.map((ch) => ({
+    ch,
+    title: chapterTitleStyle(ch.battles[0]?.enemy.faction ?? 'neutral'),
+    nodes: ch.battles.map((b, i) => {
+      const status = progress.statusOf(b.id)
+      const boss = isBossBattle(i, ch.battles.length)
+      const visual = nodeVisual(status, boss)
+      return {
+        b,
+        status,
+        boss,
+        visual,
+        ringUrl: sliceUrl(visual.ringPath),
+        face: portraitUrl(nodePortraitId(b.enemy.name)),
+        pathStyle: { backgroundImage: bgImage(pathSlice(status)) },
+      }
+    }),
+  })),
+)
 
 function select(b: StoryBattle) {
   if (progress.statusOf(b.id) === 'locked') {
@@ -30,6 +63,7 @@ function select(b: StoryBattle) {
     return
   }
   audio.play('sfx_ui_click')
+  failedFigure.value = false
   selectedId.value = b.id
 }
 
@@ -41,6 +75,10 @@ function startSelected() {
   audio.playBgm('bgm_story_calm')
   selectedId.value = null
   dialogue.value = { lines: b.pre, battle: b, phase: 'pre' }
+}
+
+function closePopup() {
+  selectedId.value = null
 }
 
 function onDialogueDone() {
@@ -95,59 +133,83 @@ onMounted(() => {
 
 <template>
   <main class="page story">
-    <button class="back btn ghost" type="button" @click="back">返回</button>
-    <h1>劇情模式</h1>
-    <button class="replay btn ghost" type="button" @click="replayOpening">重看開場</button>
+    <GameButton class="back" variant="secondary" size="sm" @click="back">返回</GameButton>
+    <GameButton class="replay" variant="text" size="sm" @click="replayOpening">重看開場</GameButton>
+    <PageTitle level="page" prefix="leaf" faction="common" divider="seagrass">劇情模式</PageTitle>
 
     <div class="chapters">
-      <section v-for="ch in story.chapters" :key="ch.id" class="chapter panel">
+      <section v-for="{ ch, title, nodes } in chapters" :key="ch.id" class="chapter" :style="panelStyle">
         <header>
-          <h2>{{ ch.title }}</h2>
+          <PageTitle level="section" :prefix="title.prefix" :faction="title.faction">{{ ch.title }}</PageTitle>
           <p>{{ ch.summary }}</p>
         </header>
         <ol class="path">
-          <li v-for="(b, i) in ch.battles" :key="b.id" class="stop">
-            <span v-if="i > 0" class="reef" aria-hidden="true" />
-            <button
-              type="button"
-              class="node"
-              :class="[progress.statusOf(b.id), { unlocking: justUnlockedId === b.id }]"
-              :style="{ '--fc': FACTION_STYLE[b.enemy.faction].main, '--fd': FACTION_STYLE[b.enemy.faction].dark }"
-              :aria-label="`${b.title}（${STATUS_LABEL[progress.statusOf(b.id)]}）`"
-              @click="select(b)"
-            >
-              <svg v-if="progress.statusOf(b.id) === 'locked'" viewBox="0 0 24 24" class="state-icon" aria-hidden="true">
-                <path d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z" />
-              </svg>
-              <template v-else>
-                <span class="no">{{ i + 1 }}</span>
-                <svg v-if="progress.statusOf(b.id) === 'cleared'" viewBox="0 0 24 24" class="shell" aria-hidden="true">
+          <li v-for="(n, i) in nodes" :key="n.b.id" class="stop">
+            <span v-if="i > 0" class="pearls" :style="n.pathStyle" aria-hidden="true" />
+            <div class="slot">
+              <button
+                type="button"
+                class="node"
+                :class="[n.status, { boss: n.boss, unlocking: justUnlockedId === n.b.id }]"
+                :aria-label="`${n.b.title}（${n.visual.statusText}）`"
+                @click="select(n.b)"
+              >
+                <img class="ring" :src="n.ringUrl" alt="" draggable="false" />
+                <span class="face" :class="{ dim: n.visual.dimFace }">
+                  <img v-if="n.face" :src="n.face" alt="" draggable="false" />
+                </span>
+                <img
+                  v-if="n.visual.showLock || justUnlockedId === n.b.id"
+                  class="lk"
+                  :src="lockUrl"
+                  alt=""
+                  draggable="false"
+                />
+                <svg v-if="n.visual.checkBadge" viewBox="0 0 24 24" class="badge" aria-hidden="true">
                   <path d="M12 4C6 4 3 9 3 13l9 7 9-7c0-4-3-9-9-9z" />
                   <path class="check" d="M8 12l3 3 5-6" />
                 </svg>
-              </template>
-            </button>
-            <span class="caption">{{ b.title }}</span>
-            <span class="status">{{ STATUS_LABEL[progress.statusOf(b.id)] }}</span>
+              </button>
+            </div>
+            <span class="caption">{{ n.b.title }}</span>
+            <span class="status">{{ n.visual.statusText }}</span>
           </li>
         </ol>
       </section>
     </div>
 
-    <div v-if="selected" class="popup-backdrop" @click.self="selectedId = null">
-      <div class="popup panel" role="dialog" :aria-label="selected.title">
-        <CharacterPortrait :name="selected.enemy.name" :faction="selected.enemy.faction" :size="120" />
+    <div v-if="selected" class="popup-backdrop" @click.self="closePopup">
+      <div class="popup" :style="panelStyle" role="dialog" :aria-label="selected.title">
+        <img
+          v-if="selectedFigure && !failedFigure"
+          class="figure"
+          :src="selectedFigure"
+          :alt="selected.enemy.name"
+          draggable="false"
+          @error="failedFigure = true"
+        />
+        <CharacterPortrait v-else class="figure-fallback" :name="selected.enemy.name" :faction="selected.enemy.faction" :size="160" />
         <div class="info">
-          <h3>{{ selected.title }}</h3>
-          <p class="enemy">對手：{{ selected.enemy.name }}（{{ selected.enemy.species }}）</p>
+          <PageTitle level="section" prefix="shell" :faction="selected.enemy.faction">{{ selected.title }}</PageTitle>
+          <span class="nameplate" :style="nameplateStyle">
+            {{ selected.enemy.name }}
+            <img
+              v-if="sliceUrl(`icons/icon-faction-${selected.enemy.faction}`)"
+              class="fac"
+              :src="sliceUrl(`icons/icon-faction-${selected.enemy.faction}`)"
+              alt=""
+              draggable="false"
+            />
+          </span>
           <p class="meta">
-            難度 <span class="stars" :aria-label="`${selected.difficulty} 顆星`">{{ '★'.repeat(selected.difficulty) }}</span>
+            {{ selected.enemy.species }}・難度
+            <span class="stars" :aria-label="`${selected.difficulty} 顆星`">{{ '★'.repeat(selected.difficulty) }}</span>
             ・對手生命 {{ selected.enemyHeroHp }}
           </p>
           <p class="meta">推薦牌組：葉陣營起始牌組</p>
           <div class="actions">
-            <button class="btn ghost" type="button" @click="selectedId = null">取消</button>
-            <button class="btn" type="button" @click="startSelected">開始</button>
+            <GameButton variant="secondary" @click="closePopup">取消</GameButton>
+            <GameButton variant="primary" @click="startSelected">開始</GameButton>
           </div>
         </div>
       </div>
@@ -166,10 +228,12 @@ onMounted(() => {
 
 <style scoped>
 .story {
+  --nd: clamp(72px, min(12.4vh, 8vw), 120px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  padding-top: 12px;
 }
 .back {
   position: fixed;
@@ -177,31 +241,33 @@ onMounted(() => {
   left: 16px;
   z-index: 40;
 }
-h1 {
-  margin: 0;
-  font-size: 36px;
-  color: #fff;
-  -webkit-text-stroke: 8px var(--c-lavender-deep);
-  paint-order: stroke fill;
-}
 .replay {
-  margin-top: -8px;
+  position: fixed;
+  top: 16px;
+  right: 76px;
+  z-index: 40;
 }
 .chapters {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  width: min(980px, 100%);
+  gap: 8px;
+  width: min(1000px, 100%);
 }
 .chapter {
-  padding: 18px 24px 22px;
+  --pb: 48px;
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: var(--pb);
+  border-image-slice: 128 fill;
+  border-image-width: var(--pb);
+  border-image-repeat: stretch;
+  padding: 0 4px 6px;
 }
-header h2 {
-  margin: 0;
-  font-size: 22px;
+header {
+  margin-top: -12px;
 }
 header p {
-  margin: 4px 0 12px;
+  margin: 6px 0 4px 8px;
   color: var(--c-ink-soft);
   font-size: 15px;
   line-height: 1.5;
@@ -218,74 +284,142 @@ header p {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
-.reef {
+/* 珍珠路徑：從前一個節點邊緣接到本節點邊緣 */
+.pearls {
   position: absolute;
-  top: 40px;
-  right: calc(50% + 44px);
-  width: calc(100% - 88px);
-  border-top: 6px dotted #f2b8c6;
+  z-index: 0;
+  top: calc(var(--nd) * 0.6 - 12px);
+  right: calc(50% + var(--nd) / 2 - 4px);
+  width: calc(100% - var(--nd) + 8px);
+  height: 24px;
+  background-repeat: repeat-x;
+  background-size: 64px 24px;
+  background-position: center;
+}
+.slot {
+  position: relative;
+  z-index: 1;
+  height: calc(var(--nd) * 1.2);
+  display: grid;
+  place-items: center;
 }
 .node {
   position: relative;
-  width: 84px;
-  height: 84px;
+  width: var(--nd);
+  height: var(--nd);
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  border: 5px solid var(--fd);
-  background: radial-gradient(circle at 40% 35%, #fff, var(--fc));
-  display: grid;
-  place-items: center;
+  background: none;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform 0.15s;
+  transition: filter 120ms;
+  -webkit-tap-highlight-color: transparent;
 }
-.node.available {
-  animation: glow 1.8s ease-in-out infinite;
+.node.boss {
+  width: calc(var(--nd) * 1.2);
+  height: calc(var(--nd) * 1.2);
 }
-.node.available:hover,
-.node.cleared:hover {
-  transform: scale(1.08);
+.node:focus {
+  outline: none;
+}
+.node:focus-visible {
+  box-shadow: var(--btn-focus-ring);
 }
 .node.locked {
-  background: #e4e0e8;
-  border-color: var(--c-disabled);
   cursor: not-allowed;
 }
-.node.unlocking {
-  animation: unlock 1.4s ease-out;
+@media (hover: hover) {
+  .node:not(.locked):hover {
+    filter: drop-shadow(0 0 10px rgba(246, 227, 161, 0.95));
+  }
 }
-.no {
-  font-family: var(--font-num);
-  font-weight: 800;
-  font-size: 32px;
-  color: #fff;
-  -webkit-text-stroke: 6px var(--c-ink);
-  paint-order: stroke fill;
-}
-.state-icon {
-  width: 34px;
-  height: 34px;
-  fill: #8f879a;
-}
-.shell {
+.ring {
   position: absolute;
-  right: -10px;
-  bottom: -8px;
-  width: 38px;
-  height: 38px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
-.shell path {
+.face {
+  position: absolute;
+  z-index: 1;
+  left: 18%;
+  top: 16%;
+  width: 64%;
+  height: 64%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.node.boss .face {
+  left: 21%;
+  top: 26%;
+  width: 58%;
+  height: 58%;
+}
+.face img {
+  width: 128%;
+  height: 128%;
+  object-fit: contain;
+}
+.face.dim img {
+  filter: grayscale(1) brightness(1.15) opacity(0.45);
+}
+.lk {
+  position: absolute;
+  z-index: 2;
+  left: 31%;
+  top: 29%;
+  width: 38%;
+  height: 38%;
+}
+.node.boss .lk {
+  top: 36%;
+}
+.badge {
+  position: absolute;
+  z-index: 2;
+  right: -4px;
+  bottom: -2px;
+  width: 34%;
+  height: 34%;
+}
+.badge path {
   fill: #fbe1e7;
   stroke: #d48aa0;
   stroke-width: 1.5;
 }
-.shell .check {
+.badge .check {
   fill: none;
   stroke: var(--c-buff);
   stroke-width: 2.6;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+/* 可挑戰：外圈光暈只改透明度 */
+.node.available::before {
+  content: '';
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(246, 227, 161, 0) 52%, rgba(246, 227, 161, 0.85) 66%, rgba(246, 227, 161, 0) 74%);
+  animation: node-glow 1.8s ease-in-out infinite;
+}
+/* 解鎖演出只播一次：鎖頭淡出、光暈擴散，節點本體不動 */
+.node.unlocking::before {
+  animation: none;
+}
+.node.unlocking .lk {
+  animation: lock-out 1.2s ease-out forwards;
+}
+.node.unlocking::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: unlock-glow 1.4s ease-out forwards;
 }
 .caption {
   font-weight: 800;
@@ -306,25 +440,60 @@ header p {
   padding: 16px;
 }
 .popup {
-  display: flex;
-  gap: 20px;
-  padding: 24px;
-  width: min(520px, 100%);
+  --pb: 52px;
+  --fig: clamp(200px, 52vh, 480px);
   box-sizing: border-box;
-  border: 3px solid #fff;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  max-width: 92vw;
+  border-style: solid;
+  border-width: var(--pb);
+  border-image-slice: 128 fill;
+  border-image-width: var(--pb);
+  border-image-repeat: stretch;
 }
-.info h3 {
-  margin: 0 0 6px;
-  font-size: 24px;
+.figure {
+  flex: none;
+  height: var(--fig);
+  width: var(--fig);
+  margin: calc(var(--fig) * -0.3) 0 -8px -12px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 18px rgba(90, 78, 106, 0.25));
 }
-.info p {
-  margin: 4px 0;
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 300px;
+  padding-bottom: 6px;
 }
-.enemy {
-  font-weight: 700;
+.nameplate {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 0 4px 18px;
+  border-style: solid;
+  border-width: 0 22px;
+  border-image-slice: 0 52 0 52 fill;
+  border-image-width: 0 22px;
+  border-image-repeat: stretch;
+  white-space: nowrap;
+  font-size: 19px;
+  font-weight: 900;
+}
+.fac {
+  width: 28px;
+  height: 28px;
 }
 .meta {
+  margin: 0;
   font-size: 15px;
+  line-height: 1.6;
   color: var(--c-ink-soft);
 }
 .stars {
@@ -332,43 +501,77 @@ header p {
   letter-spacing: 2px;
 }
 .actions {
-  margin-top: 14px;
+  margin-top: 8px;
   display: flex;
   gap: 12px;
 }
-@keyframes glow {
+@keyframes node-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(246, 227, 161, 0.9);
+    opacity: 0.45;
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(246, 227, 161, 0.4);
+    opacity: 1;
   }
 }
-@keyframes unlock {
-  0% {
-    transform: scale(0.7) rotate(-10deg);
-    filter: grayscale(1);
+@keyframes lock-out {
+  to {
+    opacity: 0;
   }
-  40% {
-    transform: scale(1.25);
+}
+@keyframes unlock-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(246, 227, 161, 0.95);
   }
   100% {
-    transform: scale(1);
+    box-shadow: 0 0 0 22px rgba(246, 227, 161, 0);
+  }
+}
+/* 手機橫向 */
+@media (max-height: 500px) {
+  .chapter {
+    --pb: 36px;
+  }
+  header p {
+    font-size: 13px;
+  }
+  .caption {
+    font-size: 14px;
+  }
+  .popup {
+    --pb: 36px;
+    --fig: 70vh;
+    gap: 12px;
+  }
+  .figure {
+    margin-top: -12vh;
+  }
+  .info {
+    min-width: 280px;
+    gap: 4px;
+  }
+  .nameplate {
+    height: 38px;
+    font-size: 17px;
+  }
+  .meta {
+    font-size: 14px;
+    line-height: 1.45;
   }
 }
 @media (max-width: 640px) {
   .popup {
+    --fig: 36vh;
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-  .actions {
-    justify-content: center;
+  .figure {
+    margin: -10vh 0 0;
   }
-  .node {
-    width: 64px;
-    height: 64px;
+  .info {
+    min-width: 0;
+    align-items: center;
   }
   .path {
     grid-template-columns: 1fr;
@@ -377,12 +580,12 @@ header p {
   /* 小螢幕改直排：節點在左、標題與狀態在右 */
   .stop {
     display: grid;
-    grid-template-columns: 64px 1fr;
+    grid-template-columns: calc(var(--nd) * 1.2) 1fr;
     column-gap: 14px;
     row-gap: 2px;
     align-items: center;
   }
-  .node {
+  .slot {
     grid-row: 1 / span 2;
   }
   .caption {
@@ -392,14 +595,12 @@ header p {
   .status {
     align-self: start;
   }
-  .reef {
-    top: -18px;
+  .pearls {
+    top: -21px;
     right: auto;
-    left: 29px;
-    width: 0;
-    height: 18px;
-    border-top: none;
-    border-left: 6px dotted #f2b8c6;
+    left: calc(var(--nd) * 0.6 - 9px);
+    width: 18px;
+    transform: rotate(90deg);
   }
 }
 </style>
