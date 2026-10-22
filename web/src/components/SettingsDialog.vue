@@ -1,6 +1,11 @@
 <script setup lang="ts">
 // 設定對話框：音量、動畫速度、跳過教學
 import { onBeforeUnmount, onMounted } from 'vue'
+import GameButton from '@/components/ui/GameButton.vue'
+import GameSlider from '@/components/ui/GameSlider.vue'
+import GameToggle from '@/components/ui/GameToggle.vue'
+import PageTitle from '@/components/ui/PageTitle.vue'
+import { uiImageUrl } from '@/content/cardStyle'
 import { audio } from '@/fx/audio'
 import type { GameSpeed, SettingsData } from '@/persistence'
 import { useSettingsStore } from '@/stores/settings'
@@ -14,8 +19,11 @@ const volumes: { key: keyof Pick<SettingsData, 'masterVolume' | 'musicVolume' | 
   { key: 'sfxVolume', label: '音效' },
 ]
 
-function setVolume(key: (typeof volumes)[number]['key'], e: Event) {
-  void store.update({ [key]: Number((e.target as HTMLInputElement).value) })
+const panelUrl = uiImageUrl('panels/panel', true)
+const panelStyle = panelUrl ? { borderImageSource: `url("${panelUrl}")` } : {}
+
+function setVolume(key: (typeof volumes)[number]['key'], value: number) {
+  void store.update({ [key]: value })
 }
 
 function previewSfx() {
@@ -25,6 +33,11 @@ function previewSfx() {
 function setSpeed(speed: GameSpeed) {
   audio.play('sfx_ui_click')
   void store.update({ speed })
+}
+
+function setSkipTutorial(skipTutorial: boolean) {
+  audio.play('sfx_ui_click')
+  void store.update({ skipTutorial })
 }
 
 function close() {
@@ -40,63 +53,63 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <div class="backdrop" @click.self="close">
-    <section class="dialog panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <h2 id="settings-title">設定</h2>
+  <div class="settings-backdrop" @click.self="close">
+    <section class="dialog" :style="panelStyle" role="dialog" aria-modal="true" aria-label="設定">
+      <PageTitle class="title" level="section" prefix="star" faction="common" divider="seagrass">設定</PageTitle>
 
-      <fieldset>
-        <legend>音訊</legend>
-        <label v-for="v in volumes" :key="v.key" class="row">
-          <span>{{ v.label }}</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            :value="store.settings[v.key]"
-            @input="setVolume(v.key, $event)"
-            @change="previewSfx"
-          />
-          <output>{{ store.settings[v.key] }}</output>
-        </label>
-      </fieldset>
+      <div class="cols">
+        <fieldset>
+          <legend>音訊</legend>
+          <div v-for="v in volumes" :key="v.key" class="row">
+            <span>{{ v.label }}</span>
+            <GameSlider
+              :model-value="store.settings[v.key]"
+              :min="0"
+              :max="100"
+              :step="5"
+              :label="v.label"
+              @update:model-value="setVolume(v.key, $event)"
+              @change="previewSfx"
+            />
+            <output>{{ store.settings[v.key] }}</output>
+          </div>
+        </fieldset>
 
-      <fieldset>
-        <legend>動畫速度</legend>
-        <div class="seg" role="radiogroup" aria-label="動畫速度">
-          <button
-            v-for="s in [1, 2] as const"
-            :key="s"
-            type="button"
-            role="radio"
-            :aria-checked="store.settings.speed === s"
-            :class="{ on: store.settings.speed === s }"
-            @click="setSpeed(s)"
-          >
-            {{ s }}x
-          </button>
+        <div class="side">
+          <fieldset>
+            <legend>動畫速度</legend>
+            <div class="seg" role="radiogroup" aria-label="動畫速度">
+              <GameButton
+                v-for="s in [1, 2] as const"
+                :key="s"
+                :variant="store.settings.speed === s ? 'primary' : 'secondary'"
+                size="sm"
+                role="radio"
+                :aria-checked="store.settings.speed === s"
+                @click="setSpeed(s)"
+              >
+                {{ s }}x
+              </GameButton>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>教學</legend>
+            <div class="row toggle-row">
+              <span>跳過新手教學</span>
+              <GameToggle :model-value="store.settings.skipTutorial" label="跳過新手教學" @update:model-value="setSkipTutorial" />
+            </div>
+          </fieldset>
+
+          <GameButton class="done" variant="primary" size="lg" @click="close">完成</GameButton>
         </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>教學</legend>
-        <label class="row check">
-          <input
-            type="checkbox"
-            :checked="store.settings.skipTutorial"
-            @change="store.update({ skipTutorial: ($event.target as HTMLInputElement).checked })"
-          />
-          <span>跳過新手教學</span>
-        </label>
-      </fieldset>
-
-      <button class="btn" type="button" @click="close">完成</button>
+      </div>
     </section>
   </div>
 </template>
 
 <style scoped>
-.backdrop {
+.settings-backdrop {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -106,44 +119,56 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   padding: 16px;
 }
 .dialog {
-  width: min(440px, 100%);
-  padding: 24px 28px;
+  --pb: 52px;
+  box-sizing: border-box;
+  width: min(520px, 100%);
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 0 4px;
+  border-style: solid;
+  border-width: var(--pb);
+  border-image-slice: 128 fill;
+  border-image-width: var(--pb);
+  border-image-repeat: stretch;
+}
+.title {
+  align-self: center;
+}
+.cols,
+.side {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-h2 {
-  margin: 0;
-  font-size: 26px;
-}
 fieldset {
-  border: none;
+  min-width: 0;
   margin: 0;
   padding: 0;
+  border: none;
 }
 legend {
-  font-weight: 800;
-  color: var(--c-lavender-deep);
   margin-bottom: 6px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--btn-primary-500);
 }
 .row {
   display: grid;
-  grid-template-columns: 70px 1fr 36px;
+  grid-template-columns: 64px 1fr 36px;
   align-items: center;
-  gap: 10px;
-  min-height: 40px;
+  gap: 6px;
+  min-height: 44px;
   font-size: 16px;
+  font-weight: 700;
 }
-.row.check {
-  grid-template-columns: 28px 1fr;
-}
-input[type='range'] {
-  accent-color: var(--c-lavender-deep);
-}
-input[type='checkbox'] {
-  width: 22px;
-  height: 22px;
-  accent-color: var(--c-lavender-deep);
+.toggle-row {
+  grid-template-columns: 1fr auto;
 }
 output {
   text-align: right;
@@ -151,23 +176,36 @@ output {
   font-weight: 800;
 }
 .seg {
-  display: inline-flex;
-  background: #ece4f6;
-  border-radius: 999px;
-  padding: 4px;
+  display: flex;
+  gap: 8px;
 }
-.seg button {
-  border: none;
-  background: transparent;
-  min-width: 72px;
-  min-height: 40px;
-  border-radius: 999px;
-  font-size: 17px;
-  font-weight: 800;
-  cursor: pointer;
+.done {
+  align-self: center;
+  margin-top: 4px;
 }
-.seg button.on {
-  background: var(--c-lavender-deep);
-  color: #fff;
+/* 手機橫向改兩欄：左音訊，右速度、教學與完成 */
+@media (max-height: 500px) {
+  .dialog {
+    --pb: 28px;
+    width: min(760px, 100%);
+    gap: 4px;
+  }
+  .title :deep(.ptitle__divider) {
+    display: none;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 22px;
+  }
+  .side {
+    gap: 6px;
+  }
+  .row {
+    min-height: 40px;
+  }
+  .done {
+    align-self: flex-start;
+  }
 }
 </style>
