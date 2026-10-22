@@ -51,13 +51,17 @@ describe('GameButton 可否觸發點擊', () => {
 })
 
 describe('GameButton 切片路徑', () => {
-  it('主要按鈕各狀態對應各自切片', () => {
+  it('主要按鈕 hover 沿用一般切片，其餘狀態各自對應切片', () => {
     expect(buttonSlicePaths('primary')).toEqual({
       normal: 'buttons/btn-primary',
-      hover: 'buttons/btn-primary-hover',
+      hover: 'buttons/btn-primary',
       pressed: 'buttons/btn-primary-pressed',
       disabled: 'buttons/btn-primary-disabled',
     })
+  })
+
+  it('危險按鈕 hover 沿用一般切片', () => {
+    expect(buttonSlicePaths('danger')?.hover).toBe('buttons/btn-danger')
   })
 
   it('次要按鈕 hover 換亮一階切片', () => {

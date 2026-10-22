@@ -49,13 +49,16 @@ export function canActivate(f: ButtonFlags): boolean {
   return !f.disabled && !f.loading
 }
 
+// 主要與危險按鈕 hover 切片太亮，白字對比不足，沿用一般切片
+const HOVER_KEEPS_NORMAL: ReadonlySet<ButtonVariant> = new Set(['primary', 'danger'])
+
 // 切片路徑相對 assets/ui，不含 @2x 與副檔名
 export function buttonSlicePaths(variant: ButtonVariant): Record<SliceState, string> | null {
   const base = SLICE_BASE[variant]
   if (!base) return null
   return {
     normal: `buttons/${base}`,
-    hover: `buttons/${base}-hover`,
+    hover: HOVER_KEEPS_NORMAL.has(variant) ? `buttons/${base}` : `buttons/${base}-hover`,
     pressed: `buttons/${base}-pressed`,
     disabled: `buttons/${base}-disabled`,
   }

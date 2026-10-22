@@ -244,11 +244,16 @@ function onClick(e: MouseEvent) {
   transition: background-color 120ms;
 }
 
-/* hover：換亮一階切片加光暈 */
+/* hover：換亮一階切片加光暈；主要按鈕例外 */
 @media (hover: hover) {
   .gbtn:not(.is-disabled):not(.is-locked):not(.is-loading):hover {
     border-image-source: var(--s-hover);
     filter: drop-shadow(var(--btn-glow));
+  }
+  /* 主要與危險按鈕沿用一般切片，只微提亮度，白字對比維持 4.5:1 以上 */
+  .gbtn--primary:not(.is-disabled):not(.is-locked):not(.is-loading):hover,
+  .gbtn--danger:not(.is-disabled):not(.is-locked):not(.is-loading):hover {
+    filter: drop-shadow(var(--btn-glow)) brightness(1.03);
   }
   .gbtn--icon:not(.is-disabled):not(.is-locked):not(.is-loading):hover {
     background-image: var(--s-hover);
