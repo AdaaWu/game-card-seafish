@@ -47,3 +47,5 @@
 2026-10-22T15:30 | report | D01 | engineer | 可攻擊柔光疊畫 2 次改 3 次；牌庫空字色改 #FFB4B4，實測膠囊底對比 5.11:1（壓白底最差 4.69:1）；分支 polish-round2 88a919e
 2026-10-22T15:30 | report | D05 | engineer | art-style.md 與 ux.md 陣營主色對齊 FACTION_STYLE，兩份文件加註以 cardStyle.ts 為準；100598f
 2026-10-22T15:30 | report | D07 | engineer | art-style.md 禁文字規則改為只限卡圖，標題 Logo 可含遊戲名稱；a07496b
+2026-10-22T15:45 | report | D03 | engineer | 無效果文字生物卡文字框 110 改 56，插畫維持上限 548，插畫與文字框間留出 60 單位空白待美術判斷；75b5632
+2026-10-22T15:45 | report | D06 | engineer | 粉圓 v2.1 子集 192KB（改名 SeafishRound）、Baloo 2 數字子集 7KB，含 OFL 授權檔；f5474fa、a9f6d50
