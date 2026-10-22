@@ -13,7 +13,8 @@ import { TIMING } from '@/fx/animationPlan'
 import { audio, type BgmName } from '@/fx/audio'
 import { loadImage } from '@/render/cardTexture'
 import { Battlefield } from '@/render/battle/Battlefield'
-import { computeLayout, DESIGN_H, DESIGN_W, LANE_W, MINION_H, ROW_OFFSET, type Rect } from '@/render/battle/battleLayout'
+import { computeLayout, DESIGN_H, DESIGN_W, type Rect } from '@/render/battle/battleLayout'
+import { loadMinionSlices, type SliceImages } from '@/render/battle/minionTexture'
 import { roundsOf } from '@/render/battle/viewModel'
 import { useBattleStore } from '@/stores/battle'
 import { useSettingsStore } from '@/stores/settings'
@@ -31,6 +32,8 @@ import {
   type TutorialState,
 } from '@/tutorial/tutorialFlow'
 import { scriptedEnemyAction, tutorialSetup } from '@/tutorial/tutorialScript'
+import BubbleLayer from '@/components/ui/BubbleLayer.vue'
+import GameButton from '@/components/ui/GameButton.vue'
 import TutorialOverlay, { type Hole } from './TutorialOverlay.vue'
 import BattleResult from './BattleResult.vue'
 import CardDetail from './CardDetail.vue'
@@ -65,6 +68,8 @@ const emit = defineEmits<{ finished: [result: Outcome]; tutorialEnd: [] }>()
 const PLAYER_NAME = '小葉'
 const END: Action = { type: 'endTurn' }
 const EMPTY: ReadonlySet<string> = new Set<string>()
+// CardView lg 的原始寬度
+const SHOWCASE_BASE_W = 300
 
 const store = useBattleStore()
 const settings = useSettingsStore()
@@ -346,12 +351,11 @@ function unionOf(rects: (Rect | null)[]): Rect | null {
   return { x, y, w: Math.max(...rs.map((r) => r.x + r.w)) - x, h: Math.max(...rs.map((r) => r.y + r.h)) - y }
 }
 
-const MINION_HALF = { w: 70, h: MINION_H / 2 }
-
 function minionRects(pid: PlayerId): Rect[] {
+  const g = layout.value.boardGeo
   return (view.value?.players[pid].board ?? []).flatMap((m) => {
     const c = field?.minionLogical(m.instanceId)
-    return c ? [{ x: c.x - MINION_HALF.w, y: c.y - MINION_HALF.h, w: MINION_HALF.w * 2, h: MINION_HALF.h * 2 }] : []
+    return c ? [{ x: c.x - g.frameW / 2, y: c.y - g.frameH / 2, w: g.frameW, h: g.frameH }] : []
   })
 }
 
@@ -370,7 +374,10 @@ function focusRects(f: Focus): Rect[] {
   if (f === 'mana') return one(rectOfEl(ui?.querySelector('.mana-p1') ?? null))
   if (f === 'endTurn') return one(rectOfEl(ui?.querySelector('[data-testid="end-turn"]') ?? null))
   if (f === 'hand') return one(unionOf([...(ui?.querySelectorAll('[data-hand] .hand-inner') ?? [])].map(rectOfEl)))
-  if (f === 'myBoard') return [{ x: (l.lw - LANE_W) / 2, y: l.boardCy + ROW_OFFSET - 110, w: LANE_W, h: 220 }]
+  if (f === 'myBoard') {
+    const g = l.boardGeo
+    return [{ x: (l.lw - g.laneW) / 2, y: l.boardCy + g.rowOffset - g.frameH / 2 - 20, w: g.laneW, h: g.frameH + 40 }]
+  }
   if (f === 'myMinions') return minionRects('p1')
   if (f === 'enemyMinions') return minionRects('p2')
   if (f.startsWith('card:')) return one(rectOfEl(handEl(f.slice(5), '.hand-inner')))
@@ -787,7 +794,8 @@ function updateMinionHover(x: number, y: number): void {
     const l = layout.value
     const h = l.detailCardW * 1.4
     const side = at.x < l.lw / 2 ? 'right' : 'left'
-    const x = clamp(side === 'right' ? at.x + 90 : at.x - 90 - detailW.value, 20, l.lw - detailW.value - 20)
+    const off = l.boardGeo.frameW / 2 + 20
+    const x = clamp(side === 'right' ? at.x + off : at.x - off - detailW.value, 20, l.lw - detailW.value - 20)
     const y = clamp(at.y - h / 2, 20, l.lh - h - 20)
     detail.value = { card, minionId: id, x, y, side }
   }, 250)
@@ -804,10 +812,17 @@ watch(detail, (d) => {
 
 // ---------- 場上外觀同步 ----------
 const fieldReady = ref(false)
+// 我方回合中本回合已攻擊過的生物
+const attacked = computed<ReadonlySet<string>>(() => {
+  const s = store.state
+  if (!s || s.activePlayer !== 'p1' || store.busy) return EMPTY
+  return new Set(s.players.p1.board.filter((m) => m.attacksThisTurn >= 1).map((m) => m.instanceId))
+})
 watchEffect(() => {
   if (!fieldReady.value || !field) return
   const showReady = !locked.value && mode.value.kind === 'idle'
   field.setReady(showReady ? canAttack.value : new Set())
+  field.setExhausted(attacked.value)
   field.setHighlights(targets.value)
 })
 
@@ -869,24 +884,26 @@ function fit(): void {
   const l = computeLayout(w, h)
   layout.value = l
   if (!l.compact) handOpen.value = false
-  field?.setView(l.lw, l.lh, l.boardCy)
+  field?.setView(l.lw, l.lh, l.boardCy, l.boardGeo)
 }
 
-async function preloadImages(): Promise<Map<string, HTMLImageElement | null>> {
+async function preloadImages(): Promise<{ images: Map<string, HTMLImageElement | null>; slices: SliceImages }> {
   const t = tutOn.value ? tutorialSetup(props.playerDeck, props.enemyDeck) : null
   const ids = new Set([...props.playerDeck, ...props.enemyDeck, ...(t ? [...t.playerDeck, ...t.enemyDeck] : []), ...tokens.map((c) => c.id)])
   const map = new Map<string, HTMLImageElement | null>()
+  let slices: SliceImages = new Map()
   const timeout = new Promise<void>((r) => setTimeout(r, 8000))
   await Promise.race([
-    Promise.all(
-      [...ids].map(async (id) => {
+    Promise.all([
+      ...[...ids].map(async (id) => {
         const url = cardArtUrl(id)
         map.set(id, url ? await loadImage(url) : null)
       }),
-    ),
+      loadMinionSlices().then((s) => (slices = s)),
+    ]),
     timeout,
   ])
-  return map
+  return { images: map, slices }
 }
 
 onMounted(async () => {
@@ -897,10 +914,10 @@ onMounted(async () => {
   window.addEventListener('pointerup', onUp)
   window.addEventListener('pointercancel', onCancel)
   window.addEventListener('keydown', onKey)
-  const images = await preloadImages()
+  const { images, slices } = await preloadImages()
   if (disposed || !glEl.value) return
-  field = new Battlefield(glEl.value, cards, images)
-  field.setView(layout.value.lw, layout.value.lh, layout.value.boardCy)
+  field = new Battlefield(glEl.value, cards, images, slices)
+  field.setView(layout.value.lw, layout.value.lh, layout.value.boardCy, layout.value.boardGeo)
   fieldReady.value = true
   animator = new Animator(
     createBattleStage({
@@ -936,14 +953,26 @@ onUnmounted(() => {
 })
 
 const pos = (r: Rect) => ({ left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` })
+// 對戰疊層整體縮放，按鈕 token 改用邏輯 px
 const uiStyle = computed(() => {
   const l = layout.value
+  const md = Math.max(24, l.minFont * 1.1)
+  const sm = Math.max(22, l.minFont)
   return {
     width: `${l.lw}px`,
     height: `${l.lh}px`,
     transform: `scale(${l.scale})`,
     '--min-font': `${l.minFont}px`,
     '--btn-h': `${l.buttonH}px`,
+    '--btn-h-lg': `${l.endTurn.h}px`,
+    '--btn-fs-lg': `${l.endTurnFont}px`,
+    '--btn-pad-lg': `${l.endTurnFont * 1.4}px`,
+    '--btn-h-md': `${l.buttonH}px`,
+    '--btn-fs-md': `${md}px`,
+    '--btn-pad-md': `${md * 1.3}px`,
+    '--btn-h-sm': `${l.buttonH * 0.8}px`,
+    '--btn-fs-sm': `${sm}px`,
+    '--btn-pad-sm': `${sm * 1.2}px`,
   }
 })
 </script>
@@ -954,10 +983,11 @@ const uiStyle = computed(() => {
     <div v-if="portrait" class="rotate-hint" role="alert">
       <span class="rotate-icon" aria-hidden="true">⟳</span>
       請將裝置轉為橫向
-      <button class="btn rotate-back" type="button" data-testid="rotate-back" @click="router.push('/menu')">返回選單</button>
+      <GameButton variant="secondary" data-testid="rotate-back" @click="router.push('/menu')">返回選單</GameButton>
     </div>
     <div ref="stageEl" class="stage" :class="{ gray: fx.lowSaturation, hidden: portrait }">
       <div ref="glEl" class="gl" />
+      <BubbleLayer />
       <div
         ref="uiEl"
         class="ui"
@@ -1039,18 +1069,20 @@ const uiStyle = computed(() => {
             <span class="count">{{ view.players.p1.deckCount }}</span>
           </div>
 
-          <button
+          <GameButton
             class="end-turn"
             :class="endState"
-            :style="[pos(layout.endTurn), { fontSize: `${layout.endTurnFont}px` }]"
-            type="button"
+            :style="pos(layout.endTurn)"
+            variant="primary"
+            size="lg"
             :disabled="enemyTurn || locked || endLocked"
+            :loading="enemyTurn"
             data-testid="end-turn"
             @pointerdown.stop
             @click="endTurn"
           >
             {{ enemyTurn ? '對手回合' : '結束回合' }}
-          </button>
+          </GameButton>
 
           <HandFan
             :cards="view.players.p1.hand"
@@ -1070,11 +1102,11 @@ const uiStyle = computed(() => {
 
         <TargetArrow v-if="arrow" v-bind="arrow" />
         <div v-if="mode.kind === 'target' && mode.optional" class="target-actions" :style="pos(layout.actions)" @pointerdown.stop>
-          <button class="btn" type="button" data-testid="play-no-target" @click="playWithoutTarget">不選目標，直接打出</button>
-          <button class="btn ghost" type="button" @click="cancelMode">取消</button>
+          <GameButton variant="primary" data-testid="play-no-target" @click="playWithoutTarget">不選目標，直接打出</GameButton>
+          <GameButton variant="secondary" @click="cancelMode">取消</GameButton>
         </div>
         <div v-else-if="mode.kind !== 'idle'" class="target-actions" :style="pos(layout.actions)">
-          <button class="btn ghost cancel-float" type="button" data-testid="cancel" @pointerdown.stop @click="cancelMode">取消</button>
+          <GameButton class="cancel-float" variant="secondary" data-testid="cancel" @pointerdown.stop @click="cancelMode">取消</GameButton>
         </div>
         <div
           v-if="store.busy && enemyTurn && !outcome"
@@ -1098,9 +1130,16 @@ const uiStyle = computed(() => {
           v-if="fx.showcase && cards[fx.showcase.cardId]"
           :key="fx.showcase.key"
           class="showcase"
-          :style="{ left: `${layout.lw / 2 - 150}px`, top: `${layout.boardCy - 210}px` }"
+          :style="{
+            left: `${layout.lw / 2 - layout.showcaseW / 2}px`,
+            top: `${layout.boardCy - (layout.showcaseW * 1.4) / 2}px`,
+            width: `${layout.showcaseW}px`,
+            height: `${layout.showcaseW * 1.4}px`,
+          }"
         >
-          <CardView :card="cards[fx.showcase.cardId]!" size="lg" />
+          <div class="showcase-scale" :style="{ transform: `scale(${layout.showcaseW / SHOWCASE_BASE_W})` }">
+            <CardView :card="cards[fx.showcase.cardId]!" size="lg" />
+          </div>
         </div>
 
         <CardDetail v-if="detailView && !drag?.active" v-bind="detailView" />
@@ -1124,18 +1163,23 @@ const uiStyle = computed(() => {
           @skip="onTutorialSkip"
         />
         <div v-if="loading" class="loading">潛入海底中…</div>
-
-        <BattleResult
-          v-if="outcome"
-          :result="outcome"
-          :speed="speed"
-          :rounds="rounds"
-          :exit-label="exitLabel"
-          @continue="onContinue"
-          @retry="onRetry"
-          @pointerdown.stop
-        />
       </div>
+      <!-- 結算：毛玻璃放在縮放層外，避免 backdrop-filter 在縮放容器內取樣越界 -->
+      <template v-if="outcome">
+        <div class="result-veil" aria-hidden="true" />
+        <div class="result-layer" :style="uiStyle">
+          <BattleResult
+            :result="outcome"
+            :speed="speed"
+            :rounds="rounds"
+            :exit-label="exitLabel"
+            :figure-h="layout.resultFigureH"
+            @continue="onContinue"
+            @retry="onRetry"
+            @pointerdown.stop
+          />
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -1172,8 +1216,23 @@ const uiStyle = computed(() => {
 }
 /* 降飽和只套畫面內容，結算層維持原色 */
 .stage.gray .gl,
-.stage.gray .ui > :not(.result) {
+.stage.gray .ui > * {
   filter: saturate(0.35);
+}
+.result-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(62, 53, 80, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.result-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  font-family: var(--font-ui);
+  color: var(--c-ink);
 }
 .gl {
   position: absolute;
@@ -1258,54 +1317,30 @@ const uiStyle = computed(() => {
 }
 .end-turn {
   position: absolute;
-  box-sizing: border-box;
-  border: none;
-  border-radius: 20px;
-  font-weight: 800;
-  color: #fff;
-  background: #7a64b0;
+}
+/* 已無可出牌：外圈鵝黃光暈只改透明度，不縮放 */
+.end-turn.done::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  left: calc(var(--hh) / -2 - 6px);
+  right: calc(var(--hh) / -2 - 6px);
+  border-radius: 999px;
+  pointer-events: none;
   box-shadow:
-    0 5px 0 #5e4c94,
-    var(--shadow);
-  cursor: pointer;
-  text-shadow: 0 1px 2px rgba(62, 53, 80, 0.4);
-  transition: transform 0.1s;
-}
-.end-turn:hover:not(:disabled) {
-  transform: scale(1.05);
-}
-.end-turn:active:not(:disabled) {
-  transform: scale(0.95);
-}
-.end-turn.done {
-  background: var(--c-butter);
-  color: var(--c-ink);
-  text-shadow: none;
-  box-shadow:
-    0 5px 0 #d9c17a,
-    var(--shadow);
-  animation: glow 1.6s ease-in-out infinite;
-}
-.end-turn.enemy,
-.end-turn:disabled {
-  background: #e4dfea;
-  color: var(--c-ink-soft);
-  text-shadow: none;
-  box-shadow: none;
-  cursor: default;
+    0 0 0 6px rgba(246, 227, 161, 0.85),
+    0 0 26px 10px rgba(246, 227, 161, 0.75);
+  animation: end-glow 1.6s ease-in-out infinite;
 }
 .target-actions {
   position: absolute;
   z-index: 36;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   justify-content: flex-start;
   gap: 12px;
-}
-.target-actions .btn {
-  min-height: var(--btn-h);
-  font-size: max(22px, var(--min-font));
-  padding: 0 20px;
 }
 .speed-tip {
   position: absolute;
@@ -1355,6 +1390,10 @@ const uiStyle = computed(() => {
   z-index: 38;
   pointer-events: none;
   filter: drop-shadow(0 12px 30px rgba(62, 53, 80, 0.35));
+}
+.showcase-scale {
+  width: 300px;
+  transform-origin: 0 0;
 }
 .fx-layer {
   position: absolute;
@@ -1421,12 +1460,6 @@ const uiStyle = computed(() => {
   font-size: 22px;
   font-weight: 800;
 }
-.rotate-back {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 24px;
-  font-size: 18px;
-}
 .rotate-icon {
   font-size: 56px;
   line-height: 1;
@@ -1462,13 +1495,9 @@ const uiStyle = computed(() => {
   background: rgba(127, 120, 194, 0.9);
   border-radius: 999px;
 }
-/* 可以結束回合：外框光暈脈動，不縮放 */
-@keyframes glow {
+@keyframes end-glow {
   50% {
-    box-shadow:
-      0 5px 0 #d9c17a,
-      0 0 0 6px rgba(246, 227, 161, 0.7),
-      var(--shadow);
+    opacity: 0.35;
   }
 }
 </style>

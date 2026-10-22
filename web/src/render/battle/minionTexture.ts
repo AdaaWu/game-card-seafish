@@ -1,25 +1,73 @@
-// 場上生物外觀：橢圓頭像框＋角色圖＋攻擊／生命，同外觀共用貼圖（參照計數）
+// 場上生物拱窗小卡：切片分層合成底層貼圖與攻血貼圖，同外觀共用（參照計數）
 import * as THREE from 'three'
-import type { Card } from '@/content/types'
-import { FACTION_STYLE, KEYWORDS, SHAPES, attackTone, healthTone, type IconDef, type StatTone } from '@/content/cardStyle'
+import type { Card, Faction } from '@/content/types'
+import { FACTION_STYLE, KEYWORDS, uiImageUrl, type IconDef } from '@/content/cardStyle'
+import { alphaBounds, loadImage } from '@/render/cardTexture'
+import {
+  MINION_CANVAS,
+  OVERLAY_SLICES,
+  baseKey,
+  baseLayers,
+  minionArtRect,
+  statColors,
+  statKey,
+  type BaseFlags,
+  type BaseLayer,
+  type StatLook,
+} from './minionLayers'
 
-// 繪製座標維持 256×320，貼圖放大 1.5 倍供高 DPR 螢幕使用
-const DRAW_W = 256
-const DRAW_H = 320
-const TEX_SCALE = 1.5
-export const MINION_TEX_W = DRAW_W * TEX_SCALE
-export const MINION_TEX_H = DRAW_H * TEX_SCALE
+export type SliceImages = Map<string, HTMLImageElement | null>
 
-export interface MinionLook {
-  attack: number
-  health: number
-  maxHealth: number
-  keywords: string[]
-}
-
+const FACTIONS: Faction[] = ['leaf', 'tide', 'frost', 'light', 'neutral']
 const FONT_NUM = '"M PLUS Rounded 1c", "Baloo 2", "Noto Sans TC", sans-serif'
 const INK = '#3E3550'
-const TONE_COLOR: Record<StatTone, string> = { up: '#7EE29A', down: '#FF8F8B', same: '#FFFFFF' }
+
+// 攻血貼圖只取畫布下緣這一段（2 倍畫布座標）
+export const STAT_STRIP = { y: 480, h: 224 }
+const STATPLATE = { y: 568 }
+const BADGE = { d: 224, cy: 604, ax: 120, hx: 456 }
+// 拱頂關鍵字圖示
+const KW = { d: 104, cy: 60, gap: 112 }
+
+export function minionSlicePaths(): string[] {
+  return [
+    ...FACTIONS.flatMap((f) => [`minion/minion-window-${f}`, `minion/minion-frame-${f}`]),
+    'minion/minion-exhausted',
+    'minion/ov-stealth',
+    'minion/minion-statplate',
+    ...Object.values(OVERLAY_SLICES),
+    'icons/icon-attack',
+    'icons/icon-health',
+  ]
+}
+
+// 切片以 @2x 預載一次，載入失敗記為 null
+export async function loadMinionSlices(): Promise<SliceImages> {
+  const map: SliceImages = new Map()
+  await Promise.all(
+    minionSlicePaths().map(async (p) => {
+      const url = uiImageUrl(p, true)
+      map.set(p, url ? await loadImage(url) : null)
+    }),
+  )
+  return map
+}
+
+// 切片缺圖時的拱窗外形
+function archPath(): Path2D {
+  const p = new Path2D()
+  const x0 = 40
+  const x1 = MINION_CANVAS.w - 40
+  const top = 40
+  const bottom = MINION_CANVAS.h - 40
+  const r = (x1 - x0) / 2
+  p.moveTo(x0, bottom)
+  p.lineTo(x0, top + r)
+  p.arc((x0 + x1) / 2, top + r, r, Math.PI, 0)
+  p.lineTo(x1, bottom)
+  p.closePath()
+  return p
+}
 
 function drawIcon(ctx: CanvasRenderingContext2D, icon: IconDef, x: number, y: number, size: number, color: string) {
   ctx.save()
@@ -38,155 +86,164 @@ function drawIcon(ctx: CanvasRenderingContext2D, icon: IconDef, x: number, y: nu
   ctx.restore()
 }
 
-// 守護改為貝殼盾形外框，其餘為橢圓
-function framePath(taunt: boolean): Path2D {
-  const p = new Path2D()
-  if (taunt) {
-    p.moveTo(128, 22)
-    p.bezierCurveTo(190, 22, 232, 44, 236, 70)
-    p.bezierCurveTo(240, 170, 210, 240, 128, 292)
-    p.bezierCurveTo(46, 240, 16, 170, 20, 70)
-    p.bezierCurveTo(24, 44, 66, 22, 128, 22)
-    p.closePath()
+let artCanvas: HTMLCanvasElement | null = null
+
+// 插畫用拱窗遮罩裁切，潛藏降透明度、已攻擊去飽和
+function drawArt(
+  ctx: CanvasRenderingContext2D,
+  card: Card,
+  layer: Extract<BaseLayer, { kind: 'art' }>,
+  image: HTMLImageElement | null,
+  mask: HTMLImageElement | null,
+) {
+  const { w, h } = MINION_CANVAS
+  artCanvas ??= document.createElement('canvas')
+  artCanvas.width = w
+  artCanvas.height = h
+  const a = artCanvas.getContext('2d')
+  if (!a) return
+  a.clearRect(0, 0, w, h)
+  if (layer.saturation < 1) a.filter = `saturate(${layer.saturation}) brightness(0.92)`
+  if (image) {
+    const r = minionArtRect(alphaBounds(image), image.width, image.height)
+    a.drawImage(image, r.x, r.y, r.w, r.h)
   } else {
-    p.ellipse(128, 152, 104, 132, 0, 0, Math.PI * 2)
+    const f = FACTION_STYLE[card.faction]
+    drawIcon(a, f.icon, w / 2 - 110, h / 2 - 150, 220, f.dark)
   }
-  return p
+  a.filter = 'none'
+  a.globalCompositeOperation = 'destination-in'
+  if (mask) a.drawImage(mask, 0, 0, w, h)
+  else a.fill(archPath())
+  a.globalCompositeOperation = 'source-over'
+  ctx.globalAlpha = layer.alpha
+  ctx.drawImage(artCanvas, 0, 0)
+  ctx.globalAlpha = 1
 }
 
-function badge(ctx: CanvasRenderingContext2D, d: string, x: number, y: number, scale: number, fill: string) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.scale(scale, scale)
-  const p = new Path2D(d)
-  ctx.fillStyle = fill
-  ctx.fill(p)
-  ctx.lineWidth = 4
-  ctx.strokeStyle = INK
-  ctx.lineJoin = 'round'
-  ctx.stroke(p)
-  ctx.restore()
+function drawKeywords(ctx: CanvasRenderingContext2D, faction: Faction, icons: string[], more: number) {
+  const items: (string | number)[] = [...icons, ...(more > 0 ? [more] : [])]
+  const x0 = MINION_CANVAS.w / 2 - ((items.length - 1) * KW.gap) / 2
+  items.forEach((item, i) => {
+    const cx = x0 + i * KW.gap
+    ctx.beginPath()
+    ctx.arc(cx, KW.cy, KW.d / 2, 0, Math.PI * 2)
+    ctx.fillStyle = '#FFFDF7'
+    ctx.fill()
+    ctx.lineWidth = 6
+    ctx.strokeStyle = FACTION_STYLE[faction].dark
+    ctx.stroke()
+    if (typeof item === 'string') {
+      const icon = KEYWORDS[item]?.icon
+      if (icon) drawIcon(ctx, icon, cx - KW.d * 0.31, KW.cy - KW.d * 0.31, KW.d * 0.62, INK)
+    } else {
+      ctx.font = `800 ${KW.d * 0.42}px ${FONT_NUM}`
+      ctx.fillStyle = INK
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(`+${item}`, cx, KW.cy + 2)
+    }
+  })
 }
 
-function number(ctx: CanvasRenderingContext2D, n: number, cx: number, cy: number, color: string) {
-  ctx.font = `800 ${n >= 10 ? 40 : 48}px ${FONT_NUM}`
+// 底層：窗底、插畫、薄紗與霧紗、外框、拱頂關鍵字
+export function drawMinionBase(
+  ctx: CanvasRenderingContext2D,
+  card: Card,
+  flags: BaseFlags,
+  keywords: string[],
+  image: HTMLImageElement | null,
+  slices: SliceImages,
+) {
+  const { w, h } = MINION_CANVAS
+  const f = FACTION_STYLE[card.faction]
+  ctx.clearRect(0, 0, w, h)
+  const mask = slices.get(`minion/minion-window-${card.faction}`) ?? null
+  for (const layer of baseLayers(card.faction, flags, keywords)) {
+    if (layer.kind === 'art') drawArt(ctx, card, layer, image, mask)
+    else if (layer.kind === 'keywords') drawKeywords(ctx, card.faction, layer.icons, layer.more)
+    else {
+      const img = slices.get(layer.path) ?? null
+      if (img) {
+        ctx.globalAlpha = layer.alpha
+        ctx.drawImage(img, 0, 0, w, h)
+        ctx.globalAlpha = 1
+      } else if (layer.path.includes('window')) {
+        ctx.fillStyle = f.light
+        ctx.fill(archPath())
+      } else if (layer.path.includes('frame')) {
+        ctx.lineWidth = 16
+        ctx.strokeStyle = f.dark
+        ctx.stroke(archPath())
+      }
+    }
+  }
+}
+
+function statNumber(ctx: CanvasRenderingContext2D, n: number, cx: number, cy: number, color: string) {
+  const size = BADGE.d * (n >= 10 ? 0.42 : 0.5)
+  ctx.font = `800 ${size}px ${FONT_NUM}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.lineJoin = 'round'
-  ctx.lineWidth = 8
+  ctx.lineWidth = BADGE.d / 7
   ctx.strokeStyle = INK
   ctx.strokeText(String(n), cx, cy)
   ctx.fillStyle = color
   ctx.fillText(String(n), cx, cy)
 }
 
-export function drawMinion(ctx: CanvasRenderingContext2D, card: Card, look: MinionLook, image: HTMLImageElement | null) {
-  const f = FACTION_STYLE[card.faction]
-  const taunt = look.keywords.includes('taunt')
-  ctx.setTransform(TEX_SCALE, 0, 0, TEX_SCALE, 0, 0)
-  ctx.clearRect(0, 0, DRAW_W, DRAW_H)
-  const frame = framePath(taunt)
-  const bg = ctx.createRadialGradient(128, 130, 10, 128, 150, 150)
-  bg.addColorStop(0, '#FFFFFF')
-  bg.addColorStop(0.6, f.light)
-  bg.addColorStop(1, f.main)
-  ctx.fillStyle = bg
-  ctx.fill(frame)
-  if (image) {
-    ctx.save()
-    ctx.clip(frame)
-    const box = 230
-    const s = Math.min(box / image.width, box / image.height)
-    const w = image.width * s
-    const h = image.height * s
-    ctx.drawImage(image, 128 - w / 2, 165 - h / 2, w, h)
-    ctx.restore()
-  } else {
-    drawIcon(ctx, f.icon, 78, 90, 100, f.dark)
-  }
-  ctx.lineWidth = taunt ? 14 : 10
-  ctx.strokeStyle = taunt ? '#6E5F80' : f.dark
-  ctx.stroke(frame)
-
-  // 關鍵字圖示：最多 4 個，超過顯示 +N
-  const kws = look.keywords.filter((k) => KEYWORDS[k])
-  const shown = kws.slice(0, kws.length > 4 ? 3 : 4)
-  const total = shown.length + (kws.length > 4 ? 1 : 0)
-  const startX = 128 - ((total - 1) * 44) / 2
-  shown.forEach((k, i) => {
-    const cx = startX + i * 44
-    ctx.beginPath()
-    ctx.arc(cx, 26, 20, 0, Math.PI * 2)
-    ctx.fillStyle = '#FFFDF7'
-    ctx.fill()
-    ctx.lineWidth = 3
-    ctx.strokeStyle = f.dark
-    ctx.stroke()
-    drawIcon(ctx, KEYWORDS[k]!.icon, cx - 13, 13, 26, INK)
-  })
-  if (kws.length > 4) {
-    const cx = startX + 3 * 44
-    ctx.beginPath()
-    ctx.arc(cx, 26, 20, 0, Math.PI * 2)
-    ctx.fillStyle = '#FFFDF7'
-    ctx.fill()
-    ctx.font = `800 20px ${FONT_NUM}`
-    ctx.fillStyle = INK
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(`+${kws.length - 3}`, cx, 27)
-  }
-
-  // 攻擊（左下）與生命（右下），變色規則與卡面共用
-  const atkColor = TONE_COLOR[attackTone(look.attack, card.attack ?? 0)]
-  const hpTone = healthTone(look.health, look.maxHealth, card.health ?? 0)
-  const hurt = hpTone === 'down'
-  const hpColor = TONE_COLOR[hpTone]
-  badge(ctx, SHAPES.attack, 2, 226, 1.05, '#F6E3A1')
-  number(ctx, look.attack, 48, 274, atkColor)
-  badge(ctx, SHAPES.health, 160, 226, 1.05, '#F2B8C6')
-  number(ctx, look.health, 206, 270, hpColor)
-  if (hurt) {
-    ctx.save()
-    ctx.translate(222, 214)
-    ctx.strokeStyle = INK
-    ctx.lineWidth = 4
-    ctx.lineCap = 'round'
-    ctx.stroke(new Path2D('M0 0L10 12L4 18L16 30'))
-    ctx.restore()
-  }
+// 攻血：底座、攻擊在左、生命在右，數字顏色沿用卡面 tone
+export function drawMinionStats(ctx: CanvasRenderingContext2D, card: Card, look: StatLook, slices: SliceImages) {
+  const { w } = MINION_CANVAS
+  ctx.clearRect(0, 0, w, STAT_STRIP.h)
+  ctx.save()
+  ctx.translate(0, -STAT_STRIP.y)
+  const plate = slices.get('minion/minion-statplate') ?? null
+  if (plate) ctx.drawImage(plate, (w - plate.width) / 2, STATPLATE.y, plate.width, plate.height)
+  const colors = statColors(card, look)
+  const half = BADGE.d / 2
+  const atk = slices.get('icons/icon-attack') ?? null
+  const hp = slices.get('icons/icon-health') ?? null
+  if (atk) ctx.drawImage(atk, BADGE.ax - half, BADGE.cy - half, BADGE.d, BADGE.d)
+  if (hp) ctx.drawImage(hp, BADGE.hx - half, BADGE.cy - half, BADGE.d, BADGE.d)
+  statNumber(ctx, look.attack, BADGE.ax, BADGE.cy, colors.attack)
+  statNumber(ctx, look.health, BADGE.hx, BADGE.cy, colors.health)
+  ctx.restore()
 }
-
-const lookKey = (cardId: string, l: MinionLook) => `${cardId}|${l.attack}|${l.health}|${l.maxHealth}|${l.keywords.join(',')}`
 
 interface Entry {
   texture: THREE.CanvasTexture
   refs: number
 }
 
+export interface Lease {
+  key: string
+  texture: THREE.CanvasTexture
+}
+
 export class MinionTextureCache {
   private readonly entries = new Map<string, Entry>()
-
   private readonly cards: Record<string, Card>
   private readonly images: Map<string, HTMLImageElement | null>
+  private readonly slices: SliceImages
   private readonly anisotropy: number
 
-  constructor(cards: Record<string, Card>, images: Map<string, HTMLImageElement | null>, anisotropy: number) {
+  constructor(cards: Record<string, Card>, images: Map<string, HTMLImageElement | null>, slices: SliceImages, anisotropy: number) {
     this.cards = cards
     this.images = images
+    this.slices = slices
     this.anisotropy = anisotropy
   }
 
-  acquire(cardId: string, look: MinionLook): { key: string; texture: THREE.CanvasTexture } {
-    const key = lookKey(cardId, look)
+  private lease(key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): Lease {
     let entry = this.entries.get(key)
     if (!entry) {
       const canvas = document.createElement('canvas')
-      canvas.width = MINION_TEX_W
-      canvas.height = MINION_TEX_H
+      canvas.width = w
+      canvas.height = h
       const ctx = canvas.getContext('2d')
-      const card = this.cards[cardId]
-      if (ctx && card) drawMinion(ctx, card, look, this.images.get(cardId) ?? null)
+      if (ctx) draw(ctx)
       const texture = new THREE.CanvasTexture(canvas)
       texture.colorSpace = THREE.SRGBColorSpace
       texture.anisotropy = this.anisotropy
@@ -195,6 +252,21 @@ export class MinionTextureCache {
     }
     entry.refs++
     return { key, texture: entry.texture }
+  }
+
+  acquireBase(cardId: string, flags: BaseFlags, keywords: string[]): Lease {
+    const card = this.cards[cardId]
+    return this.lease(`base|${baseKey(cardId, flags, keywords)}`, MINION_CANVAS.w, MINION_CANVAS.h, (ctx) => {
+      if (card) drawMinionBase(ctx, card, flags, keywords, this.images.get(cardId) ?? null, this.slices)
+    })
+  }
+
+  acquireStats(cardId: string, look: StatLook): Lease {
+    const card = this.cards[cardId]
+    const key = card ? statKey(card, look) : `${cardId}|${look.attack}|${look.health}`
+    return this.lease(`stat|${key}`, MINION_CANVAS.w, STAT_STRIP.h, (ctx) => {
+      if (card) drawMinionStats(ctx, card, look, this.slices)
+    })
   }
 
   release(key: string): void {

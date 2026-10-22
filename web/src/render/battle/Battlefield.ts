@@ -1,12 +1,13 @@
 // three.js 戰場：海底背景、雙方 6 格場地、場上生物與特效；以版面的邏輯座標對外
 import * as THREE from 'three'
 import gsap from 'gsap'
-import type { Card, PlayerId } from '@/engine'
+import { MAX_BOARD, type Card, type PlayerId } from '@/engine'
 import type { ShakeLevel } from '@/fx/animationPlan'
 import type { ViewMinion } from './viewModel'
-import { MinionTextureCache } from './minionTexture'
+import { MinionTextureCache, STAT_STRIP, type SliceImages } from './minionTexture'
+import { MINION_CANVAS, OVERLAY_ORDER, OVERLAY_SLICES, overlayState } from './minionLayers'
 import { assetUrls } from '@/content/assetUrls'
-import { DESIGN_H, DESIGN_W, LANE_W, MINION_H as MINION_LOGICAL_H, ROW_OFFSET } from './battleLayout'
+import { DESIGN_H, DESIGN_W, boardGeometry, type BoardGeometry } from './battleLayout'
 import { insertPreview } from './insertPreview'
 
 const FOV = 30
@@ -16,17 +17,15 @@ const VISIBLE_H = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2))
 const PX_PER_UNIT = DESIGN_H / VISIBLE_H
 
 const px = (n: number) => n / PX_PER_UNIT
-// 世界原點為潮汐分隔線中心
-const ROW_Y: Record<PlayerId, number> = { p1: -px(ROW_OFFSET), p2: px(ROW_OFFSET) }
-const SPACING = px(168)
-const MINION_W = px(140)
-const MINION_H = px(MINION_LOGICAL_H)
 const BURST_POOL = 24
-const MAX_BOARD = 6
+// 攻血貼圖佔整張畫布高度的比例
+const STAT_H = STAT_STRIP.h / MINION_CANVAS.h
 // 預留卡位讓位動畫秒數
 const MAKE_ROOM_S = 0.18
 const BUBBLE_COUNT = 30
 const SHAKE_PX: Record<ShakeLevel, [number, number]> = { none: [0, 0], light: [4, 120], medium: [8, 200], heavy: [14, 320] }
+
+type MinionMesh = THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>
 
 interface MinionObj {
   id: string
@@ -34,12 +33,21 @@ interface MinionObj {
   root: THREE.Group
   // 事件動畫（受擊、選取、搖頭）用的子層，不做待機漂浮
   bob: THREE.Group
-  card: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>
+  // 縮放成生物尺寸的子層，底下網格都用 1×1 單位平面
+  body: THREE.Group
+  card: MinionMesh
+  stats: MinionMesh
+  // 狀態疊層：可攻擊光暈、守護外環、冰凍、泡泡盾
+  overlays: THREE.Group
   ready: THREE.Mesh
+  taunt: THREE.Mesh
   highlight: THREE.Mesh
   ice: THREE.Mesh
   bubble: THREE.Mesh
-  key: string
+  baseKey: string
+  statKey: string
+  isReady: boolean
+  exhausted: boolean
   vm: ViewMinion
 }
 
@@ -192,6 +200,15 @@ function backgroundTexture(): THREE.CanvasTexture {
   return t
 }
 
+function stacked(img: HTMLImageElement, passes: number): HTMLCanvasElement {
+  const c = document.createElement('canvas')
+  c.width = img.width
+  c.height = img.height
+  const ctx = c.getContext('2d')!
+  for (let i = 0; i < passes; i++) ctx.drawImage(img, 0, 0)
+  return c
+}
+
 export class Battlefield {
   readonly renderer: THREE.WebGLRenderer
   private readonly scene = new THREE.Scene()
@@ -207,22 +224,19 @@ export class Battlefield {
   private readonly textures: MinionTextureCache
   private readonly disposables: { dispose(): void }[] = []
 
-  private readonly cardGeo = new THREE.PlaneGeometry(MINION_W, MINION_H)
+  // 生物各層共用 1×1 平面，由 body 縮放成生物尺寸
+  private readonly unitGeo = new THREE.PlaneGeometry(1, 1)
+  private readonly statGeo = new THREE.PlaneGeometry(1, STAT_H).translate(0, -0.5 + STAT_H / 2, 0)
   private readonly ringGeo = new THREE.RingGeometry(0.92, 1.04, 48)
-  private readonly iceGeo = new THREE.PlaneGeometry(MINION_W * 1.08, MINION_H * 1.02)
-  private readonly bubbleGeo = new THREE.PlaneGeometry(MINION_W * 1.35, MINION_H * 1.2)
-  // 可攻擊：腳下柔光
-  private readonly readyGeo = new THREE.PlaneGeometry(1, 1)
-  private readonly readyMat = new THREE.MeshBasicMaterial({
-    map: radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'),
-    transparent: true,
-    opacity: 0.9,
-    depthWrite: false,
-  })
+  private geo: BoardGeometry = boardGeometry(false)
+  // 狀態疊層材質：所有生物共用，可攻擊光暈只改透明度
+  private readonly readyMat: THREE.MeshBasicMaterial
+  private readonly tauntMat: THREE.MeshBasicMaterial
   private readonly highlightMat = new THREE.MeshBasicMaterial({ color: 0xf6e3a1, transparent: true, opacity: 0.9, depthWrite: false })
-  private readonly selectedMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1, depthWrite: false })
   private readonly iceMat: THREE.MeshBasicMaterial
   private readonly bubbleMat: THREE.MeshBasicMaterial
+  private readonly lanes: THREE.Mesh[] = []
+  private readonly divider: THREE.Mesh
   private readonly burstMat: THREE.SpriteMaterial
   private readonly burst: THREE.Sprite[] = []
   private burstCursor = 0
@@ -247,7 +261,12 @@ export class Battlefield {
   private readonly bgImages: Partial<Record<'landscape' | 'portrait', THREE.Texture>> = {}
   private disposed = false
 
-  constructor(container: HTMLElement, cards: Record<string, Card>, images: Map<string, HTMLImageElement | null>) {
+  constructor(
+    container: HTMLElement,
+    cards: Record<string, Card>,
+    images: Map<string, HTMLImageElement | null>,
+    slices: SliceImages,
+  ) {
     this.container = container
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -257,7 +276,7 @@ export class Battlefield {
     this.renderer.domElement.style.height = '100%'
     this.renderer.domElement.style.touchAction = 'none'
     container.appendChild(this.renderer.domElement)
-    this.textures = new MinionTextureCache(cards, images, this.renderer.capabilities.getMaxAnisotropy())
+    this.textures = new MinionTextureCache(cards, images, slices, this.renderer.capabilities.getMaxAnisotropy())
     this.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
     this.camera.position.set(0, 0, CAM_Z)
@@ -269,13 +288,27 @@ export class Battlefield {
     this.disposables.push(this.bgFallback)
     this.loadBackgrounds()
 
-    const iceTex = iceTexture()
-    this.iceMat = new THREE.MeshBasicMaterial({ map: iceTex, transparent: true, depthWrite: false })
+    // 切片缺圖時退回程式畫的貼圖
+    // passes 大於 1 時疊畫多次加深光暈
+    const sliceTex = (path: string, fallback: () => THREE.Texture | null, passes = 1): THREE.Texture | null => {
+      const img = slices.get(path)
+      const tex = img ? new THREE.Texture(passes > 1 ? stacked(img, passes) : img) : fallback()
+      if (!tex) return null
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.needsUpdate = true
+      this.disposables.push(tex)
+      return tex
+    }
     const bubbleTex = radialTexture('rgba(200,230,255,0.35)', 'rgba(255,220,250,0.9)', 128, true)
-    this.bubbleMat = new THREE.MeshBasicMaterial({ map: bubbleTex, transparent: true, depthWrite: false, opacity: 0.85 })
+    const overlayMat = (map: THREE.Texture | null, opacity = 1) =>
+      new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, opacity, visible: map !== null })
+    this.readyMat = overlayMat(sliceTex(OVERLAY_SLICES.ready, () => radialTexture('rgba(95,200,120,1)', 'rgba(127,216,143,0)'), 2))
+    this.tauntMat = overlayMat(sliceTex(OVERLAY_SLICES.taunt, () => null))
+    this.iceMat = overlayMat(sliceTex(OVERLAY_SLICES.frozen, iceTexture))
+    this.bubbleMat = overlayMat(sliceTex(OVERLAY_SLICES.bubble, () => bubbleTex), 0.85)
     this.burstMat = new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, depthWrite: false })
     const spotTex = radialTexture('rgba(255,255,255,0.55)', 'rgba(255,255,255,0)')
-    this.disposables.push(iceTex, bubbleTex, spotTex)
+    this.disposables.push(bubbleTex, spotTex)
 
     // 柔和光斑
     const spotMat = new THREE.SpriteMaterial({ map: spotTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.08 })
@@ -307,29 +340,27 @@ export class Battlefield {
 
     // 潮汐分隔線
     const dividerTex = dividerTexture()
-    const dividerGeo = new THREE.PlaneGeometry(px(LANE_W + 200), px(16))
     const dividerMat = new THREE.MeshBasicMaterial({ map: dividerTex, transparent: true, depthWrite: false })
-    const divider = new THREE.Mesh(dividerGeo, dividerMat)
-    divider.position.set(0, 0, -0.5)
-    this.scene.add(divider)
-    this.disposables.push(dividerTex, dividerGeo, dividerMat)
+    this.divider = new THREE.Mesh(this.unitGeo, dividerMat)
+    this.divider.position.set(0, 0, -0.5)
+    this.scene.add(this.divider)
+    this.disposables.push(dividerTex, dividerMat)
 
     // 雙方場地底色
     const laneTex = laneTexture()
-    const laneGeo = new THREE.PlaneGeometry(px(LANE_W), px(210))
     const laneMat = new THREE.MeshBasicMaterial({ map: laneTex, transparent: true, depthWrite: false })
-    for (const pid of ['p1', 'p2'] as const) {
-      const lane = new THREE.Mesh(laneGeo, laneMat)
-      lane.position.set(0, ROW_Y[pid], -0.6)
+    for (let i = 0; i < 2; i++) {
+      const lane = new THREE.Mesh(this.unitGeo, laneMat)
+      this.lanes.push(lane)
       this.scene.add(lane)
     }
-    this.disposables.push(laneTex, laneGeo, laneMat)
+    this.disposables.push(laneTex, laneMat)
 
     const slotFill = slotTexture('fill')
     const slotEdge = slotTexture('edge')
     const slotFillMat = new THREE.MeshBasicMaterial({ map: slotFill, transparent: true, opacity: 0.4, depthWrite: false })
     this.slotEdgeMat = new THREE.MeshBasicMaterial({ map: slotEdge, transparent: true, opacity: 0.5, depthWrite: false })
-    this.slot.add(new THREE.Mesh(this.cardGeo, slotFillMat), new THREE.Mesh(this.cardGeo, this.slotEdgeMat))
+    this.slot.add(new THREE.Mesh(this.unitGeo, slotFillMat), new THREE.Mesh(this.unitGeo, this.slotEdgeMat))
     this.slot.visible = false
     this.scene.add(this.slot)
     this.disposables.push(slotFill, slotEdge, slotFillMat, this.slotEdgeMat)
@@ -349,19 +380,17 @@ export class Battlefield {
     }
 
     this.disposables.push(
-      this.cardGeo,
+      this.unitGeo,
+      this.statGeo,
       this.ringGeo,
-      this.iceGeo,
-      this.bubbleGeo,
-      this.readyGeo,
-      this.readyMat.map!,
       this.readyMat,
+      this.tauntMat,
       this.highlightMat,
-      this.selectedMat,
       this.iceMat,
       this.bubbleMat,
       this.burstMat,
     )
+    this.applyGeometry()
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(container)
@@ -416,8 +445,12 @@ export class Battlefield {
     this.scene.background = tex
   }
 
-  // 依版面的邏輯尺寸調整鏡頭距離與高度，讓分隔線落在 boardCy
-  setView(lw: number, lh: number, boardCy: number): void {
+  // 依版面的邏輯尺寸調整鏡頭距離與高度，讓分隔線落在 boardCy；生物尺寸改變時重排
+  setView(lw: number, lh: number, boardCy: number, geo: BoardGeometry = this.geo): void {
+    if (geo.minionW !== this.geo.minionW || geo.rowOffset !== this.geo.rowOffset || geo.spacing !== this.geo.spacing) {
+      this.geo = geo
+      this.applyGeometry()
+    }
     this.lw = lw
     this.lh = lh
     this.boardCy = boardCy
@@ -434,6 +467,28 @@ export class Battlefield {
       arr[i * 3 + 1] = this.camBase.y + (Math.random() - 0.5) * 2 * this.bubbleHalf.y
     }
     pos.needsUpdate = true
+  }
+
+  private rowY(pid: PlayerId): number {
+    return pid === 'p1' ? -px(this.geo.rowOffset) : px(this.geo.rowOffset)
+  }
+
+  private minionH(): number {
+    return px(this.geo.minionH)
+  }
+
+  private applyGeometry(): void {
+    const g = this.geo
+    this.divider.scale.set(px(g.laneW + 200), px(16), 1)
+    this.lanes.forEach((lane, i) => {
+      lane.scale.set(px(g.laneW), px(g.minionH + 40), 1)
+      lane.position.set(0, this.rowY(i === 0 ? 'p1' : 'p2'), -0.6)
+    })
+    this.slot.scale.set(px(g.frameW), px(g.frameH), 1)
+    this.slot.position.y = this.rowY('p1')
+    for (const m of this.minions.values()) m.body.scale.set(px(g.minionW), px(g.minionH), 1)
+    this.layout('p1', 0)
+    this.layout('p2', 0)
   }
 
   // 重新開局：清空場上並把鏡頭歸位
@@ -455,7 +510,8 @@ export class Battlefield {
     this.highlightMat.opacity = 0.6 + 0.35 * Math.sin(t * ((2 * Math.PI) / 1.2))
     // 預留卡位只做外框透明度脈動
     this.slotEdgeMat.opacity = 0.42 + 0.12 * Math.sin(t * ((2 * Math.PI) / 1.6))
-    if (!this.reducedMotion) this.readyMat.opacity = 0.8 + 0.2 * Math.sin(t * ((2 * Math.PI) / 1.6))
+    // 可攻擊光暈透明度 0.7 到 1.0，週期 1.6 秒
+    if (!this.reducedMotion) this.readyMat.opacity = 0.85 + 0.15 * Math.sin(t * ((2 * Math.PI) / 1.6))
     const pos = this.bubbles.geometry.getAttribute('position') as THREE.BufferAttribute
     const arr = pos.array as Float32Array
     for (let i = 0; i < BUBBLE_COUNT; i++) {
@@ -491,7 +547,7 @@ export class Battlefield {
   }
 
   homeX(index: number, count: number): number {
-    return (index - (count - 1) / 2) * SPACING
+    return (index - (count - 1) / 2) * px(this.geo.spacing)
   }
 
   pick(x: number, y: number): string | null {
@@ -516,13 +572,13 @@ export class Battlefield {
   }
 
   isOverRow(pid: PlayerId, y: number): boolean {
-    return Math.abs(px(this.boardCy - y) - ROW_Y[pid]) < MINION_H * 0.75
+    return Math.abs(px(this.boardCy - y) - this.rowY(pid)) < this.minionH() * 0.75
   }
 
   // 我方插入位置顯示預留卡位，左右生物讓位；null 或場地已滿時收起並滑回原位
   showInsertPreview(index: number | null, color?: string): void {
     const ids = this.order.p1
-    const preview = index === null ? null : insertPreview(ids.length, index, SPACING, MAX_BOARD)
+    const preview = index === null ? null : insertPreview(ids.length, index, px(this.geo.spacing), MAX_BOARD)
     if (!preview) {
       if (this.previewIndex !== null) this.layout('p1', MAKE_ROOM_S)
       this.previewIndex = null
@@ -536,14 +592,28 @@ export class Battlefield {
       const m = this.minions.get(id)
       if (m) gsap.to(m.root.position, { x: preview.minionX[i], duration: MAKE_ROOM_S, ease: 'power2.out', overwrite: 'auto' })
     })
-    this.slot.position.set(preview.slotX, ROW_Y.p1, -0.05)
+    this.slot.position.set(preview.slotX, this.rowY('p1'), -0.05)
     this.slot.visible = true
   }
 
   // ---------- 狀態外觀 ----------
 
   setReady(ids: ReadonlySet<string>): void {
-    for (const m of this.minions.values()) m.ready.visible = ids.has(m.id)
+    for (const m of this.minions.values()) {
+      m.isReady = ids.has(m.id)
+      m.ready.visible = this.overlaysOf(m).ready
+    }
+  }
+
+  // 已攻擊：插畫去飽和加薄紗，狀態改變才重新合成底層貼圖
+  setExhausted(ids: ReadonlySet<string>): void {
+    for (const m of this.minions.values()) {
+      const on = ids.has(m.id)
+      if (on === m.exhausted) continue
+      m.exhausted = on
+      this.refreshBase(m)
+      m.ready.visible = this.overlaysOf(m).ready
+    }
   }
 
   setHighlights(ids: ReadonlySet<string>): void {
@@ -561,44 +631,118 @@ export class Battlefield {
 
   // ---------- 生物 ----------
 
+  private overlaysOf(m: MinionObj) {
+    return overlayState({ keywords: m.vm.keywords, frozen: m.vm.frozen, ready: m.isReady, exhausted: m.exhausted })
+  }
+
+  private applyOverlays(m: MinionObj): void {
+    const o = this.overlaysOf(m)
+    m.ready.visible = o.ready
+    m.taunt.visible = o.taunt
+    m.ice.visible = o.frozen
+    m.bubble.visible = o.bubble
+  }
+
+  private refreshBase(m: MinionObj): void {
+    const lease = this.textures.acquireBase(m.vm.cardId, { stealth: m.vm.keywords.includes('stealth'), exhausted: m.exhausted }, m.vm.keywords)
+    if (lease.key !== m.baseKey) {
+      m.card.material.map = lease.texture
+      m.card.material.needsUpdate = true
+      this.textures.release(m.baseKey)
+      m.baseKey = lease.key
+    } else this.textures.release(lease.key)
+  }
+
+  private refreshStats(m: MinionObj): void {
+    const lease = this.textures.acquireStats(m.vm.cardId, m.vm)
+    if (lease.key !== m.statKey) {
+      m.stats.material.map = lease.texture
+      m.stats.material.needsUpdate = true
+      this.textures.release(m.statKey)
+      m.statKey = lease.key
+    } else this.textures.release(lease.key)
+  }
+
+  // 底層與攻血各自一張貼圖，狀態疊層用共用材質
   private createMinion(pid: PlayerId, vm: ViewMinion): MinionObj {
     const root = new THREE.Group()
     const bob = new THREE.Group()
+    const body = new THREE.Group()
+    body.scale.set(px(this.geo.minionW), px(this.geo.minionH), 1)
     root.add(bob)
-    const { key, texture } = this.textures.acquire(vm.cardId, vm)
-    const card = new THREE.Mesh(this.cardGeo, new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false }))
+    bob.add(body)
+    const copy = { ...vm, keywords: [...vm.keywords] }
+    const base = this.textures.acquireBase(vm.cardId, { stealth: vm.keywords.includes('stealth'), exhausted: false }, vm.keywords)
+    const stat = this.textures.acquireStats(vm.cardId, vm)
+    const layer = (geo: THREE.PlaneGeometry, mat: THREE.MeshBasicMaterial, order: number, z: number) => {
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.renderOrder = order
+      mesh.position.z = z
+      return mesh
+    }
+    const card = layer(this.unitGeo, new THREE.MeshBasicMaterial({ map: base.texture, transparent: true, depthWrite: false }), OVERLAY_ORDER.base, 0)
     card.userData.instanceId = vm.instanceId
-    card.renderOrder = 10
-    const ready = new THREE.Mesh(this.readyGeo, this.readyMat)
-    ready.scale.set(MINION_W * 1.2, MINION_H * 0.36, 1)
-    ready.position.set(0, -MINION_H * 0.5, -0.02)
-    ready.visible = false
+    const stats = layer(this.statGeo, new THREE.MeshBasicMaterial({ map: stat.texture, transparent: true, depthWrite: false }), OVERLAY_ORDER.stats, 0.1)
+    const ready = layer(this.unitGeo, this.readyMat, OVERLAY_ORDER.ready, -0.03)
+    const taunt = layer(this.unitGeo, this.tauntMat, OVERLAY_ORDER.taunt, -0.02)
+    const ice = layer(this.unitGeo, this.iceMat, OVERLAY_ORDER.frozen, 0.05)
+    const bubble = layer(this.unitGeo, this.bubbleMat, OVERLAY_ORDER.bubble, 0.08)
     const highlight = new THREE.Mesh(this.ringGeo, this.highlightMat)
-    highlight.scale.set(MINION_W * 0.64, MINION_H * 0.6, 1)
+    highlight.scale.set(0.57, 0.545, 1)
     highlight.position.z = -0.01
     highlight.visible = false
-    const ice = new THREE.Mesh(this.iceGeo, this.iceMat)
-    ice.position.z = 0.05
-    ice.renderOrder = 12
-    ice.visible = vm.frozen
-    const bubble = new THREE.Mesh(this.bubbleGeo, this.bubbleMat)
-    bubble.position.z = 0.08
-    bubble.renderOrder = 13
-    bubble.visible = vm.keywords.includes('bubble')
-    bob.add(ready, highlight, card, ice, bubble)
+    const overlays = new THREE.Group()
+    overlays.add(ready, taunt, ice, bubble)
+    body.add(highlight, overlays, card, stats)
     this.scene.add(root)
-    const obj: MinionObj = { id: vm.instanceId, pid, root, bob, card, ready, highlight, ice, bubble, key, vm: { ...vm } }
+    const obj: MinionObj = {
+      id: vm.instanceId,
+      pid,
+      root,
+      bob,
+      body,
+      card,
+      stats,
+      overlays,
+      ready,
+      taunt,
+      highlight,
+      ice,
+      bubble,
+      baseKey: base.key,
+      statKey: stat.key,
+      isReady: false,
+      exhausted: false,
+      vm: copy,
+    }
+    this.applyOverlays(obj)
     this.minions.set(vm.instanceId, obj)
     return obj
+  }
+
+  private materials(m: MinionObj): THREE.MeshBasicMaterial[] {
+    return [m.card.material, m.stats.material]
   }
 
   private destroyMinion(id: string): void {
     const m = this.minions.get(id)
     if (!m) return
-    gsap.killTweensOf([m.root.position, m.root.scale, m.root.rotation, m.bob.position, m.bob.scale, m.card.material.color, m.card.material])
+    gsap.killTweensOf([
+      m.root.position,
+      m.root.scale,
+      m.root.rotation,
+      m.bob.position,
+      m.bob.scale,
+      m.bob.rotation,
+      m.ice.position,
+      m.ice.scale,
+      m.bubble.scale,
+      ...this.materials(m).flatMap((mat) => [mat, mat.color]),
+    ])
     this.scene.remove(m.root)
-    m.card.material.dispose()
-    this.textures.release(m.key)
+    for (const mat of this.materials(m)) mat.dispose()
+    this.textures.release(m.baseKey)
+    this.textures.release(m.statKey)
     this.minions.delete(id)
     for (const pid of ['p1', 'p2'] as const) this.order[pid] = this.order[pid].filter((x) => x !== id)
     if (this.selectedId === id) this.selectedId = null
@@ -608,17 +752,9 @@ export class Battlefield {
     const m = this.minions.get(vm.instanceId)
     if (!m) return
     m.vm = { ...vm, keywords: [...vm.keywords] }
-    const { key, texture } = this.textures.acquire(vm.cardId, vm)
-    if (key !== m.key) {
-      m.card.material.map = texture
-      m.card.material.needsUpdate = true
-      this.textures.release(m.key)
-      m.key = key
-    } else {
-      this.textures.release(key)
-    }
-    m.bubble.visible = vm.keywords.includes('bubble')
-    m.ice.visible = vm.frozen
+    this.refreshBase(m)
+    this.refreshStats(m)
+    this.applyOverlays(m)
   }
 
   layout(pid: PlayerId, seconds = 0.25, skip?: string): void {
@@ -627,8 +763,9 @@ export class Battlefield {
       const m = this.minions.get(id)
       if (!m || id === skip) return
       const x = this.homeX(i, ids.length)
-      if (seconds <= 0) m.root.position.set(x, ROW_Y[pid], 0)
-      else gsap.to(m.root.position, { x, y: ROW_Y[pid], z: 0, duration: seconds, ease: 'power2.out', overwrite: 'auto' })
+      const y = this.rowY(pid)
+      if (seconds <= 0) m.root.position.set(x, y, 0)
+      else gsap.to(m.root.position, { x, y, z: 0, duration: seconds, ease: 'power2.out', overwrite: 'auto' })
     })
   }
 
@@ -642,7 +779,7 @@ export class Battlefield {
         if (existing) this.updateMinion(vm)
         else {
           const m = this.createMinion(pid, vm)
-          m.root.position.set(0, ROW_Y[pid], 0)
+          m.root.position.set(0, this.rowY(pid), 0)
         }
       }
       this.order[pid] = board[pid].map((m) => m.instanceId)
@@ -657,17 +794,21 @@ export class Battlefield {
     const ids = this.order[pid]
     ids.splice(Math.min(position, ids.length), 0, m.id)
     const x = this.homeX(ids.indexOf(m.id), ids.length)
-    const y = ROW_Y[pid]
+    const y = this.rowY(pid)
     this.layout(pid, 0.25, m.id)
     m.root.position.set(x * 0.4, pid === 'p1' ? -px(300) : px(300), px(80))
     m.root.scale.setScalar(1.25)
-    m.card.material.opacity = 0
+    const mats = this.materials(m)
+    for (const mat of mats) mat.opacity = 0
+    // 狀態疊層等落地後才出現
+    m.overlays.visible = false
     const tl = gsap.timeline()
     tl.to(m.root.position, { x, y, z: px(80), duration: 0.25, ease: 'power2.inOut' })
-    tl.to(m.card.material, { opacity: 1, duration: 0.2 }, 0)
+    tl.to(mats, { opacity: 1, duration: 0.2 }, 0)
     tl.to(m.root.scale, { x: 1, y: 1, z: 1, duration: 0.25, ease: 'power2.inOut' }, 0)
     tl.to(m.root.position, { z: 0, duration: 0.18, ease: 'power3.in' })
     tl.addPause('+=0', () => {
+      m.overlays.visible = true
       this.rippleAt(x, y)
       onLand(() => tl.resume())
     })
@@ -678,12 +819,12 @@ export class Battlefield {
 
   private rippleAt(x: number, y: number): void {
     const r = this.ripple
-    r.position.set(x, y - MINION_H * 0.35, -0.1)
+    r.position.set(x, y - this.minionH() * 0.35, -0.1)
     r.scale.set(0.5, 0.2, 1)
     r.material.opacity = 0.8
     gsap.to(r.scale, { x: 2.2, y: 0.8, duration: 0.4, ease: 'power2.out', overwrite: true })
     gsap.to(r.material, { opacity: 0, duration: 0.4, ease: 'power2.out', overwrite: true })
-    this.burstAt(x, y - MINION_H * 0.4, 6, 0.8, 0.4)
+    this.burstAt(x, y - this.minionH() * 0.4, 6, 0.8, 0.4)
   }
 
   private burstAt(x: number, y: number, count: number, spread: number, seconds: number, upward = 0): void {
@@ -718,7 +859,7 @@ export class Battlefield {
     const dir = this.tmp.copy(target).sub(from)
     const dist = dir.length()
     dir.normalize()
-    const stop = Math.max(0, dist - MINION_H * 0.55)
+    const stop = Math.max(0, dist - this.minionH() * 0.55)
     const back = { x: from.x - dir.x * px(20), y: from.y - dir.y * px(20) }
     tl.to(m.root.position, { x: back.x, y: back.y, z: px(30), duration: 0.15, ease: 'power2.out' })
     tl.to(m.root.position, { x: from.x + dir.x * stop, y: from.y + dir.y * stop, z: px(20), duration: 0.18, ease: 'power4.in' })
@@ -767,10 +908,14 @@ export class Battlefield {
     const tl = gsap.timeline()
     const m = this.minions.get(id)
     if (!m) return tl
-    tl.to(m.card.material.color, { r: 0.6, g: 0.6, b: 0.66, duration: 0.15 })
+    const mats = this.materials(m)
+    tl.call(() => {
+      m.overlays.visible = false
+    })
+    tl.to(mats.map((mat) => mat.color), { r: 0.6, g: 0.6, b: 0.66, duration: 0.15 })
     tl.to(m.root.scale, { x: 0.35, y: 0.35, duration: 0.45, ease: 'power2.in' })
     tl.to(m.root.rotation, { z: THREE.MathUtils.degToRad(15), duration: 0.45, ease: 'power2.in' }, '<')
-    tl.to(m.card.material, { opacity: 0, duration: 0.3 }, '-=0.2')
+    tl.to(mats, { opacity: 0, duration: 0.3 }, '-=0.2')
     tl.call(() => this.burstAt(m.root.position.x, m.root.position.y, 10, 0.9, 0.6, 1.2))
     tl.to({}, { duration: 0.6 })
     tl.call(() => {
@@ -788,7 +933,7 @@ export class Battlefield {
     m.vm.frozen = true
     m.ice.visible = true
     m.ice.scale.set(1, 0.01, 1)
-    m.ice.position.y = -MINION_H / 2
+    m.ice.position.y = -0.5
     tl.to(m.ice.scale, { y: 1, duration: 0.4, ease: 'power2.out' })
     tl.to(m.ice.position, { y: 0, duration: 0.4, ease: 'power2.out' }, '<')
     tl.addPause('+=0', () => onFormed(() => tl.resume()))
@@ -801,7 +946,7 @@ export class Battlefield {
     if (!m) return tl
     m.vm.frozen = false
     tl.to(m.ice.scale, { x: 1.06, duration: 0.05, repeat: 3, yoyo: true })
-    tl.to(m.ice.position, { y: -px(60), duration: 0.3, ease: 'power2.in' })
+    tl.to(m.ice.position, { y: -0.35, duration: 0.3, ease: 'power2.in' })
     tl.to(m.ice.scale, { y: 0.01, duration: 0.3, ease: 'power2.in' }, '<')
     tl.call(() => {
       m.ice.visible = false
@@ -832,8 +977,11 @@ export class Battlefield {
     const m = this.minions.get(id)
     if (!m) return tl
     const down = m.pid === 'p1' ? -px(500) : px(500)
+    tl.call(() => {
+      m.overlays.visible = false
+    })
     tl.to(m.root.position, { y: m.root.position.y + down, z: px(60), duration: 0.4, ease: 'power2.in' })
-    tl.to(m.card.material, { opacity: 0, duration: 0.3 }, '-=0.3')
+    tl.to(this.materials(m), { opacity: 0, duration: 0.3 }, '-=0.3')
     tl.call(() => {
       const pid = m.pid
       this.destroyMinion(id)

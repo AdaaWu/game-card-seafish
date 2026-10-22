@@ -23,6 +23,36 @@ export interface HandGeometry {
   expandedHalf: number
 }
 
+// 場上生物與場地幾何（邏輯 px）；minionW、minionH 為含光暈留白的整張畫布，frame 為外框本體
+export interface BoardGeometry {
+  minionW: number
+  minionH: number
+  frameW: number
+  frameH: number
+  rowOffset: number
+  spacing: number
+  laneW: number
+  halfH: number
+}
+
+// 桌機 1440 約 120px、手機 844 約 80px；手機兩列拉開，左右收緊讓 6 格不壓到潮能條
+export function boardGeometry(compact: boolean): BoardGeometry {
+  const minionW = compact ? 222 : 160
+  const minionH = (minionW * MINION_CANVAS_H) / MINION_CANVAS_W
+  const rowOffset = compact ? 155 : 140
+  const spacing = Math.round(minionW * (compact ? 1.06 : 1.16))
+  return {
+    minionW,
+    minionH,
+    frameW: (minionW * 256) / MINION_CANVAS_W,
+    frameH: (minionH * 320) / MINION_CANVAS_H,
+    rowOffset,
+    spacing,
+    laneW: Math.max(LANE_W, spacing * 5 + minionW),
+    halfH: rowOffset + minionH / 2 + 10,
+  }
+}
+
 export interface BattleLayout {
   scale: number
   lw: number
@@ -35,6 +65,7 @@ export interface BattleLayout {
   minFont: number
   boardCy: number
   board: Rect
+  boardGeo: BoardGeometry
   heroP2: Rect
   heroP1: Rect
   portraitSize: number
@@ -58,17 +89,21 @@ export interface BattleLayout {
   detailCardW: number
   // 細節卡右側文字區寬度
   detailSideW: number
+  // 出牌展示卡寬度
+  showcaseW: number
+  // 結算小葉立繪高度
+  resultFigureH: number
 }
 
 export const DESIGN_W = 1920
 export const DESIGN_H = 1080
 const PORTRAIT_W = 1280
 
-// 戰場幾何（邏輯 px）：兩排生物位於分隔線上下
-export const ROW_OFFSET = 140
+// 場地最小寬度（邏輯 px）
 export const LANE_W = 1160
-export const MINION_H = 175
-const BOARD_HALF_H = ROW_OFFSET + 110
+// 生物切片畫布 1x 尺寸
+const MINION_CANVAS_W = 288
+const MINION_CANVAS_H = 352
 
 const DESKTOP_MIN_FONT = 14
 const MOBILE_MIN_FONT = 12
@@ -119,9 +154,10 @@ export function computeLayout(w: number, h: number): BattleLayout {
   const mv = Math.max(28, 10 * cssPx)
 
   // 元件尺寸
-  const portraitSize = Math.max(128, 52 * cssPx)
-  const nameFont = Math.max(20, minFont)
-  const nameH = Math.round(nameFont * 1.5)
+  const portraitSize = Math.max(160, 64 * cssPx)
+  // 名牌切片高度為字級 1.6 倍
+  const nameFont = Math.max(24, minFont * 1.15)
+  const nameH = Math.round(nameFont * 1.6)
   const heroW = portraitSize + 20
   const heroH = portraitSize + 12 + nameH
   const drop1 = Math.max(22, 8 * cssPx)
@@ -196,17 +232,18 @@ export function computeLayout(w: number, h: number): BattleLayout {
   below.push(restOf(handTop))
 
   // 戰場：夾在上下兩群之間，盡量置中
-  const laneX0 = cx - LANE_W / 2
-  const laneX1 = cx + LANE_W / 2
+  const geo = boardGeometry(compact)
+  const laneX0 = cx - geo.laneW / 2
+  const laneX1 = cx + geo.laneW / 2
   const above = [heroP2, manaP2, enemyHand, deckP2]
-  const lo = Math.max(...above.filter((r) => overlapX(r, laneX0, laneX1)).map(bottom)) + 12 + BOARD_HALF_H
-  const hi = Math.min(...below.filter((r) => overlapX(r, laneX0, laneX1)).map((r) => r.y)) - 12 - BOARD_HALF_H
+  const lo = Math.max(...above.filter((r) => overlapX(r, laneX0, laneX1)).map(bottom)) + 12 + geo.halfH
+  const hi = Math.min(...below.filter((r) => overlapX(r, laneX0, laneX1)).map((r) => r.y)) - 12 - geo.halfH
   const want = lh / 2 - 20
   const boardCy = lo > hi ? (lo + hi) / 2 : Math.min(Math.max(want, lo), hi)
-  const board = rect(laneX0, boardCy - BOARD_HALF_H, LANE_W, BOARD_HALF_H * 2)
+  const board = rect(laneX0, boardCy - geo.halfH, geo.laneW, geo.halfH * 2)
 
   // 桌機手牌上緣與我方生物至少留 40，不足時手牌往下沉
-  if (arrangement === 'side' && !compact) handTop = Math.max(handTop, boardCy + ROW_OFFSET + MINION_H / 2 + 40)
+  if (arrangement === 'side' && !compact) handTop = Math.max(handTop, boardCy + geo.rowOffset + geo.minionH / 2 + 40)
   const top = compact ? expandedTop : handTop
   const handRest = restOf(handTop)
 
@@ -222,6 +259,8 @@ export function computeLayout(w: number, h: number): BattleLayout {
     ? Math.min(480, (lh - mv * 2 - 40) / 1.4)
     : Math.min(Math.max(300, (minFont * 500) / 18), (lh - mv * 2) / 1.4)
   const detailSideW = compact ? minFont * 20 : Math.max(230, minFont * 11)
+  const showcaseW = compact ? (lh * 0.62) / 1.4 : 360
+  const resultFigureH = compact ? lh * 0.7 : Math.min(Math.max(220 * cssPx, lh * 0.58), 520 * cssPx)
 
   return {
     scale,
@@ -234,6 +273,7 @@ export function computeLayout(w: number, h: number): BattleLayout {
     minFont,
     boardCy,
     board,
+    boardGeo: geo,
     heroP2,
     heroP1,
     portraitSize,
@@ -267,5 +307,7 @@ export function computeLayout(w: number, h: number): BattleLayout {
     playLine,
     detailCardW,
     detailSideW,
+    showcaseW,
+    resultFigureH,
   }
 }

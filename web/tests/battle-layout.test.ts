@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HAND_LAYOUT } from '@/content/cardStyle'
-import { MINION_H, ROW_OFFSET, computeLayout, type BattleLayout, type Rect } from '@/render/battle/battleLayout'
+import { boardGeometry, computeLayout, type BattleLayout, type Rect } from '@/render/battle/battleLayout'
 
 // 舞台尺寸 = 視窗扣掉 clamp(4px, 1.2vh, 16px) 的外框
 const stage = (w: number, h: number): [number, number] => {
@@ -148,7 +148,8 @@ describe('computeLayout 對戰版面', () => {
     '%i×%i 桌機手牌上緣與我方生物下緣至少留 40',
     (w, h) => {
       const l = computeLayout(...stage(w, h))
-      expect(l.hand.top).toBeGreaterThanOrEqual(l.boardCy + ROW_OFFSET + MINION_H / 2 + 40)
+      const g = l.boardGeo
+      expect(l.hand.top).toBeGreaterThanOrEqual(l.boardCy + g.rowOffset + g.minionH / 2 + 40)
     },
   )
 
@@ -158,5 +159,76 @@ describe('computeLayout 對戰版面', () => {
       expect(l.playLine).toBeGreaterThan(l.board.y + l.board.h - 60)
       expect(l.playLine).toBeLessThanOrEqual(l.compact ? l.hand.collapsedTop : l.hand.top)
     }
+  })
+
+  it('場上生物顯示寬度：桌機 1440 約 120px、手機 844 約 80px', () => {
+    const desk = computeLayout(...stage(1440, 900))
+    const phone = computeLayout(...stage(844, 390))
+    expect(desk.boardGeo.minionW * desk.scale).toBeGreaterThanOrEqual(112)
+    expect(desk.boardGeo.minionW * desk.scale).toBeLessThanOrEqual(124)
+    expect(phone.boardGeo.minionW * phone.scale).toBeGreaterThanOrEqual(76)
+    expect(phone.boardGeo.minionW * phone.scale).toBeLessThanOrEqual(84)
+  })
+
+  it('生物外形依 288×352 畫布比例，外框為畫布扣掉四周 16', () => {
+    for (const compact of [false, true]) {
+      const g = boardGeometry(compact)
+      expect(g.minionH / g.minionW).toBeCloseTo(352 / 288)
+      expect(g.frameW / g.minionW).toBeCloseTo(256 / 288)
+      expect(g.frameH / g.minionH).toBeCloseTo(320 / 352)
+    }
+  })
+
+  it.each(LANDSCAPE)('%i×%i 6 隻生物排得下：場地寬度容納 6 格且在舞台內', (w, h) => {
+    const l = computeLayout(...stage(w, h))
+    const g = l.boardGeo
+    expect(g.spacing).toBeGreaterThan(g.frameW)
+    expect(g.spacing * 5 + g.minionW).toBeLessThanOrEqual(l.board.w)
+    expect(l.board.w).toBe(g.laneW)
+  })
+
+  it.each(ALL)('%i×%i 兩列生物上下不重疊，且不壓到頂列與手牌', (w, h) => {
+    const l = computeLayout(...stage(w, h))
+    const g = l.boardGeo
+    // 兩列外框之間至少留 6px
+    expect((g.rowOffset * 2 - g.frameH) * l.scale).toBeGreaterThanOrEqual(6)
+    const enemyTop = l.boardCy - g.rowOffset - g.frameH / 2
+    const myBottom = l.boardCy + g.rowOffset + g.frameH / 2
+    expect(enemyTop).toBeGreaterThanOrEqual(l.board.y)
+    expect(myBottom).toBeLessThanOrEqual(l.board.y + l.board.h)
+    const handTop = l.compact ? l.hand.collapsedTop : l.hand.top
+    expect(myBottom).toBeLessThan(handTop)
+    for (const r of [l.heroP2, l.manaP2, l.enemyHand, l.deckP2]) {
+      if (r.x < l.board.x + l.board.w && l.board.x < r.x + r.w) expect(enemyTop).toBeGreaterThan(r.y + r.h)
+    }
+  })
+
+  it('英雄頭像：桌機 1440 約 120px、手機 844 約 64px', () => {
+    const desk = computeLayout(...stage(1440, 900))
+    const phone = computeLayout(...stage(844, 390))
+    expect(desk.portraitSize * desk.scale).toBeGreaterThanOrEqual(116)
+    expect(desk.portraitSize * desk.scale).toBeLessThanOrEqual(122)
+    expect(phone.portraitSize * phone.scale).toBeGreaterThanOrEqual(62)
+    expect(phone.portraitSize * phone.scale).toBeLessThanOrEqual(66)
+  })
+
+  it('出牌展示卡：桌機 1440 約 270px、手機 844 約 173px', () => {
+    const desk = computeLayout(...stage(1440, 900))
+    const phone = computeLayout(...stage(844, 390))
+    expect(desk.showcaseW * desk.scale).toBeGreaterThanOrEqual(260)
+    expect(desk.showcaseW * desk.scale).toBeLessThanOrEqual(272)
+    expect(phone.showcaseW * phone.scale).toBeGreaterThanOrEqual(165)
+    expect(phone.showcaseW * phone.scale).toBeLessThanOrEqual(176)
+  })
+
+  it('結算小葉立繪：桌機約 58% 高、上限 520px，手機約 70% 高', () => {
+    const desk = computeLayout(...stage(1440, 900))
+    const phone = computeLayout(...stage(844, 390))
+    const deskPx = desk.resultFigureH * desk.scale
+    expect(deskPx).toBeGreaterThanOrEqual(490)
+    expect(deskPx).toBeLessThanOrEqual(520)
+    expect(computeLayout(...stage(2560, 1440)).resultFigureH * computeLayout(...stage(2560, 1440)).scale).toBeLessThanOrEqual(520.01)
+    expect(phone.resultFigureH * phone.scale).toBeGreaterThanOrEqual(262)
+    expect(phone.resultFigureH * phone.scale).toBeLessThanOrEqual(275)
   })
 })
