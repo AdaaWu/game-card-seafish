@@ -53,3 +53,4 @@
 2026-10-22T17:00 | report | D03 | engineer | 無文字生物卡插畫上限 548 改 602，與文字框間距 6；075a04a
 2026-10-22T17:00 | report | D06 | engineer | Google Fonts 連結移除 M PLUS Rounded 1c，保留 Noto Sans TC 備援；8df8ccc
 2026-10-22T18:30 | report | D02 | engineer | 手機直式版面：寬度 <600 直式每方 2 排 × 3 格、邏輯寬 720，插入預覽跨排，轉向提示只留寬度 <320；598 綠、E2E 9/9；eed4205、e6c4e12、5c1fde4
+2026-10-22T19:30 | report | D10 | engineer | 驗收修正六項：0670de7、c5d693f、b44534c、bbd3da4；599 綠、E2E mobile 4/4；合併 main 並部署驗證

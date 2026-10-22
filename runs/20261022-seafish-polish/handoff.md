@@ -57,3 +57,9 @@
 - 結算獎勵區加「獲得卡片」標題，並有固定勝利 E2E 案例
 - 待人眼確認：直式截圖 d02-390x844、d02-360x780、d02-430x932（含手牌展開、細節卡、結算）
 - 下一步：使用者看截圖後決定是否合併 polish-round2 到 main 並部署
+
+## 第二輪完成
+- 驗收修正六項 commit 到 polish-round2：0670de7、c5d693f、b44534c、bbd3da4
+- 以 PR 用 merge commit 合併 main，merge commit hash 見 PR 紀錄
+- Actions 部署後線上驗證 390x844、844x390、1366x768 三種尺寸
+- 單元測試 599 綠、E2E mobile 4/4
