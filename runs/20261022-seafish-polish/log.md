@@ -52,3 +52,4 @@
 2026-10-22T17:00 | report | D04 | engineer | 結算數據列回合數與總傷害、勝利翻開敵方牌組 3 張卡、立繪勝 role1-10 敗 role1-07；549 綠、E2E sandbox 2/2；3815545、89194e8
 2026-10-22T17:00 | report | D03 | engineer | 無文字生物卡插畫上限 548 改 602，與文字框間距 6；075a04a
 2026-10-22T17:00 | report | D06 | engineer | Google Fonts 連結移除 M PLUS Rounded 1c，保留 Noto Sans TC 備援；8df8ccc
+2026-10-22T18:30 | report | D02 | engineer | 手機直式版面：寬度 <600 直式每方 2 排 × 3 格、邏輯寬 720，插入預覽跨排，轉向提示只留寬度 <320；598 綠、E2E 9/9；eed4205、e6c4e12、5c1fde4
