@@ -54,3 +54,5 @@
 2026-10-22T17:00 | report | D06 | engineer | Google Fonts 連結移除 M PLUS Rounded 1c，保留 Noto Sans TC 備援；8df8ccc
 2026-10-22T18:30 | report | D02 | engineer | 手機直式版面：寬度 <600 直式每方 2 排 × 3 格、邏輯寬 720，插入預覽跨排，轉向提示只留寬度 <320；598 綠、E2E 9/9；eed4205、e6c4e12、5c1fde4
 2026-10-22T19:30 | report | D10 | engineer | 驗收修正六項：0670de7、c5d693f、b44534c、bbd3da4；599 綠、E2E mobile 4/4；合併 main 並部署驗證
+2026-10-24T02:27 | verify | D02 | human | 使用者看直式截圖規格項目通過；缺陷兩項：手牌展開遮結束回合鈕、結算獎勵卡超框且效果字過小；截圖 docs/reviews/shots/d02/
+2026-10-24T02:27 | dispatch | D11 | producer | D02 兩項缺陷修正，規劃中
